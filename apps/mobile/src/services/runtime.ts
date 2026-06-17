@@ -14,8 +14,6 @@ import { HttpTransport, LitterRuntime } from "@litter/runtime";
 import type { Transport } from "@litter/runtime";
 import type { PairPayload } from "@litter/shared";
 import { connection$ } from "../state/stores";
-import { MockTransport } from "./mockTransport";
-import { DEMO_HOST_ID, buildDemoLogs, seedDemoStores } from "./demo";
 import { connectBridge, loadBridgeConfig } from "./bridge";
 
 const PAIRING_KEY = "litter.pairing";
@@ -85,38 +83,15 @@ export async function connectSaved(): Promise<boolean> {
   }
 }
 
-/**
- * Switch into demo mode: seed sample content and back the runtime with the
- * in-app {@link MockTransport}. Used when no real host is paired so the app is
- * fully functional on first launch / for App Store review.
- */
-export async function startDemoMode(): Promise<void> {
-  seedDemoStores();
-  runtime = LitterRuntime.withTransport(new MockTransport(buildDemoLogs()));
-  runtime.onConnectionStateChange((s) => connection$.status.set(s));
-  await runtime.connect({
-    nodeId: "demo-node",
-    token: "demo",
-    hostName: "Demo Host",
-    relay: null,
-  });
-  connection$.demo.set(true);
-  connection$.activeHostId.set(DEMO_HOST_ID);
-  connection$.status.set("connected");
-}
-
 /** Refresh the current workspace (live sync if a bridge is configured). */
-export async function refreshLive(): Promise<void> {
+export async function refreshLive(fresh = false): Promise<void> {
   const bridge = await loadBridgeConfig();
-  if (bridge) {
-    const { syncLiveData } = await import("./bridge");
-    try { await syncLiveData(); } catch { /* keep cached */ }
-  } else {
-    seedDemoStores();
-  }
+  if (!bridge) return; // not paired — nothing to refresh
+  const { syncLiveData } = await import("./bridge");
+  try { await syncLiveData({ fresh }); } catch { /* keep cached */ }
 }
 
-/** App boot: live bridge → paired host → demo mode (first that succeeds). */
+/** App boot: live bridge → paired host (first that succeeds, else disconnected). */
 export async function bootstrap(): Promise<void> {
   const bridge = await loadBridgeConfig();
   if (bridge && (await connectBridge(bridge))) {
@@ -126,7 +101,8 @@ export async function bootstrap(): Promise<void> {
   }
   const pairing = await loadPairing();
   if (pairing && (await connectSaved())) return;
-  await startDemoMode();
+  // Not paired yet — stay disconnected; the app prompts to sync a device.
+  connection$.status.set("disconnected");
 }
 
 /** Leave demo mode after a real pairing is saved (forces transport rebuild). */

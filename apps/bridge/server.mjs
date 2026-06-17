@@ -48,8 +48,6 @@ export function kittylitterPath() {
   return KITTYLITTER;
 }
 
-// JSONL agents worth listing threads for (shell has none).
-const THREAD_AGENTS = ["claude", "opencode", "hermes"];
 const CACHE_MS = 20_000;
 const cache = new Map(); // key -> { at, value }
 
@@ -103,7 +101,8 @@ async function cached(key, ttl, fn) {
   return value;
 }
 
-async function getAgents() {
+async function getAgents(fresh = false) {
+  if (fresh) cache.delete("agents");
   return cached("agents", CACHE_MS, async () => {
     const frames = await probe(["--linger-secs", "1", "--timeout-secs", "20"]);
     const f = frames.find((x) => Array.isArray(x.agents));
@@ -281,10 +280,14 @@ async function listThreads(agent) {
   });
 }
 
-async function getThreads() {
+async function getThreads(fresh = false) {
+  if (fresh) cache.delete("threads");
   return cached("threads", CACHE_MS, async () => {
-    const agents = await getAgents();
-    const avail = agents.filter((a) => a.available && THREAD_AGENTS.includes(a.id));
+    const agents = await getAgents(fresh);
+    // List threads for every available JSONL agent (codex, claude, opencode,
+    // hermes, …). `shell` has no threads. This replaces a hardcoded allowlist
+    // that omitted codex (and amp/pi/grok/…).
+    const avail = agents.filter((a) => a.available && a.wire === "jsonl" && a.id !== "shell");
     const lists = await Promise.all(avail.map((a) => listThreads(a.id).catch(() => [])));
     const threads = lists.flat().sort((x, y) => (y.createdAt || "").localeCompare(x.createdAt || ""));
 
@@ -785,8 +788,8 @@ const server = http.createServer(async (req, res) => {
   lastClientSeen = Date.now();
 
   try {
-    if (url.pathname === "/v1/agents") return send(res, 200, { agents: await getAgents() });
-    if (url.pathname === "/v1/threads") return send(res, 200, { threads: await getThreads() });
+    if (url.pathname === "/v1/agents") return send(res, 200, { agents: await getAgents(url.searchParams.get("fresh") === "1") });
+    if (url.pathname === "/v1/threads") return send(res, 200, { threads: await getThreads(url.searchParams.get("fresh") === "1") });
     if (url.pathname === "/v1/status") return send(res, 200, { status: await status() });
     if (url.pathname === "/v1/messages") {
       const agent = url.searchParams.get("agent");

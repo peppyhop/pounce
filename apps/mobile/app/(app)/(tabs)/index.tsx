@@ -19,6 +19,7 @@ import {
   repositories$,
 } from "@/state/stores";
 import { SessionCard } from "@/components/SessionCard";
+import { SessionListSkeleton } from "@/components/Skeleton";
 import { BottomBar } from "@/components/BottomBar";
 import { FilterSheet } from "@/components/FilterSheet";
 import { cn, COLOR } from "@/ui";
@@ -49,12 +50,21 @@ export default function HomeScreen() {
   const raw = useSelector(() => rawSessions());
   const f = useSelector(() => filters$.get());
   const repos = useSelector(() => repositories$.get());
-  const demo = useSelector(() => connection$.demo.get());
+  const status = useSelector(() => connection$.status.get());
   const filterCount = useSelector(() => activeFilterCount());
 
+  const connected = status === "connected";
+  const loading = status === "connecting" || status === "reconnecting";
+
+  const scoped = useMemo(() => applyFilters(raw), [raw, f.device, f.agent]);
+  const attentionCount = useMemo(() => scoped.filter(needsYou).length, [scoped]);
+  // Smart default: "needs you" narrows to attention items, but when nothing
+  // needs you we show everything rather than an empty screen.
+  const effectiveNeedsOnly = f.needsOnly && attentionCount > 0;
+
   const data = useMemo<Session[]>(() => {
-    let list = applyFilters(raw);
-    if (f.needsOnly) list = list.filter(needsYou);
+    let list = scoped;
+    if (effectiveNeedsOnly) list = list.filter(needsYou);
     const t = query.trim().toLowerCase();
     if (finding && t) {
       list = list.filter((s) => {
@@ -69,10 +79,7 @@ export default function HomeScreen() {
       });
     }
     return [...list].sort((a, b) => rank(a) - rank(b) || Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
-  }, [raw, f, finding, query, repos]);
-
-  const attentionCount = useMemo(() => applyFilters(raw).filter(needsYou).length, [raw, f.device, f.agent]);
-  const totalInScope = useMemo(() => applyFilters(raw).length, [raw, f.device, f.agent]);
+  }, [scoped, effectiveNeedsOnly, finding, query, repos]);
 
   // First-run walkthrough of the bottom bar.
   const { start } = useCopilot();
@@ -88,7 +95,7 @@ export default function HomeScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    try { await refreshLive(); } finally { setRefreshing(false); }
+    try { await refreshLive(true); } finally { setRefreshing(false); }
   };
 
   // Hold ＋ to talk: transcribe → run a navigation/filter command.
@@ -124,7 +131,13 @@ export default function HomeScreen() {
           <Text className="text-[26px] font-bold text-fg">Pounce</Text>
           <Pressable onPress={() => router.push("/settings")} className="active:opacity-60">
             <Text className="text-[13px] text-fg-faint">
-              {demo ? "Demo · tap to sync" : attentionCount > 0 ? `${attentionCount} need${attentionCount === 1 ? "s" : ""} you` : "All caught up"}
+              {!connected && !loading
+                ? "Tap to sync a device"
+                : loading
+                  ? "Syncing…"
+                  : attentionCount > 0
+                    ? `${attentionCount} need${attentionCount === 1 ? "s" : ""} you`
+                    : "All caught up"}
               {filterCount ? " · filtered" : ""}
             </Text>
           </Pressable>
@@ -147,25 +160,33 @@ export default function HomeScreen() {
         keyboardDismissMode="on-drag"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLOR.accent} />}
         ListEmptyComponent={
-          <View className="items-center px-8 py-20">
-            <Text className="text-[40px]">{finding ? "🔍" : "🐾"}</Text>
-            <Text className="mt-3 text-center text-[15px] font-semibold text-fg">
-              {finding ? "No matches" : demo ? "Nothing here yet" : "All caught up"}
-            </Text>
-            <Text className="mt-1 text-center text-[13px] text-fg-muted">
-              {finding ? "Try another word." : "Nothing needs you right now."}
-            </Text>
-            {!finding && f.needsOnly && totalInScope > 0 ? (
+          loading ? (
+            <SessionListSkeleton />
+          ) : !connected ? (
+            <View className="items-center px-8 py-20">
+              <Text className="text-[40px]">🐾</Text>
+              <Text className="mt-3 text-center text-[15px] font-semibold text-fg">Connect your computer</Text>
+              <Text className="mt-1 text-center text-[13px] text-fg-muted">
+                Run Pounce Bridge on your Mac and scan the code to see your agents here.
+              </Text>
               <Pressable
-                onPress={() => filters$.needsOnly.set(false)}
-                className="active:opacity-80 mt-5 rounded-full border border-border bg-surface px-4 py-2"
+                onPress={() => router.push("/settings")}
+                className="active:opacity-80 mt-5 rounded-full bg-accent px-5 py-2.5"
               >
-                <Text className="text-[13px] font-medium text-accent">
-                  Show all {totalInScope} thread{totalInScope === 1 ? "" : "s"}
-                </Text>
+                <Text className="text-[14px] font-semibold text-white">Sync a device</Text>
               </Pressable>
-            ) : null}
-          </View>
+            </View>
+          ) : (
+            <View className="items-center px-8 py-20">
+              <Text className="text-[40px]">{finding ? "🔍" : "🐾"}</Text>
+              <Text className="mt-3 text-center text-[15px] font-semibold text-fg">
+                {finding ? "No matches" : "All caught up"}
+              </Text>
+              <Text className="mt-1 text-center text-[13px] text-fg-muted">
+                {finding ? "Try another word." : "Nothing needs you right now."}
+              </Text>
+            </View>
+          )
         }
         contentContainerStyle={{ paddingTop: 6, paddingBottom: insets.bottom + 110 }}
       />

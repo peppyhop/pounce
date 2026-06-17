@@ -133,8 +133,11 @@ interface BridgeStatus {
 
 /** Pull agents + threads from ALL configured devices and aggregate. */
 export async function syncLiveData(
-  _legacy?: BridgeConfig,
+  opts?: { fresh?: boolean },
 ): Promise<{ repos: number; sessions: number; devices: number }> {
+  // On an explicit pull-to-refresh we bypass the bridge's 20s cache so a
+  // just-opened session shows up immediately.
+  const q = opts?.fresh ? "?fresh=1" : "";
   const configs = await listDeviceConfigs();
   const repos: Record<string, Repository> = {};
   const sessions: Record<string, Session> = {};
@@ -150,8 +153,8 @@ export async function syncLiveData(
       try {
         const [{ status }, { agents }, t] = await Promise.all([
           get<{ status: BridgeStatus }>(cfg, "/v1/status"),
-          get<{ agents: BridgeAgent[] }>(cfg, "/v1/agents"),
-          get<{ threads: BridgeThread[] }>(cfg, "/v1/threads"),
+          get<{ agents: BridgeAgent[] }>(cfg, `/v1/agents${q}`),
+          get<{ threads: BridgeThread[] }>(cfg, `/v1/threads${q}`),
         ]);
         deviceName = status?.device || cfg.name;
         agentsAvail = (agents || []).filter((a) => a.available).map((a) => a.id);

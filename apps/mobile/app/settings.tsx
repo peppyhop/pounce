@@ -15,7 +15,7 @@ import {
   saveBridgeConfig,
   syncLiveData,
 } from "@/services/bridge";
-import { savePairing, startDemoMode } from "@/services/runtime";
+import { savePairing } from "@/services/runtime";
 import { cn, COLOR, DeviceIcon } from "@/ui";
 
 interface Pairing { url: string; token: string }
@@ -40,7 +40,6 @@ export default function SyncScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const status = useSelector(() => connection$.status.get());
-  const demo = useSelector(() => connection$.demo.get());
   const devices = useSelector(() => allDevices());
 
   const [busy, setBusy] = useState(false);
@@ -56,7 +55,7 @@ export default function SyncScreen() {
     });
   }, []);
 
-  const live = status === "connected" && !demo;
+  const live = status === "connected";
 
   const doSync = async (cfg: Pairing) => {
     setBusy(true);
@@ -136,7 +135,7 @@ export default function SyncScreen() {
         <View className="flex-row items-center gap-2">
           <View className={cn("h-2 w-2 rounded-full", live ? "bg-success" : "bg-fg-faint")} />
           <Text className="text-[13px] text-fg-muted">
-            {live ? "Connected" : demo ? "Demo — not synced yet" : "Not connected"}
+            {live ? "Connected" : "Not connected"}
           </Text>
         </View>
 
@@ -209,11 +208,6 @@ export default function SyncScreen() {
           </View>
         ) : null}
 
-        {!live ? (
-          <Pressable onPress={() => { void startDemoMode(); router.back(); }} className="active:opacity-70 h-11 items-center justify-center rounded-xl border border-border">
-            <Text className="text-[14px] text-fg-muted">Explore with demo data</Text>
-          </Pressable>
-        ) : null}
       </ScrollView>
     </View>
   );
