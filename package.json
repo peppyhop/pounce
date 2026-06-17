@@ -1,0 +1,39 @@
+{
+  "name": "litter-next",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Litter Next \u2014 a mobile-first React Native + Expo client for the alleycat (Litter) runtime, paired over Iroh.",
+  "packageManager": "bun@1.3.14",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20",
+    "bun": ">=1.3.0"
+  },
+  "scripts": {
+    "build": "bun run --filter './packages/*' build",
+    "typecheck": "bun run --filter '*' typecheck",
+    "lint": "bun run --filter '*' lint",
+    "test": "bun run --filter '*' test",
+    "mobile": "bun run --filter @litter/mobile start",
+    "nitro": "bun run --filter @litter/nitro codegen",
+    "bridge": "node apps/bridge/server.mjs",
+    "bridge:restart": "pkill -f 'apps/bridge/server.mjs' 2>/dev/null; sleep 1; node apps/bridge/server.mjs",
+    "bridge:install": "bash scripts/bridge-install.sh",
+    "bridge:uninstall": "bash scripts/bridge-uninstall.sh",
+    "bridge:qr": "node apps/bridge/pair.mjs",
+    "dev:ios": "cd apps/mobile && EXPO_USE_PRECOMPILED_MODULES=0 npx expo run:ios --device",
+    "testflight": "cd apps/mobile && npx testflight",
+    "publish:ios": "cd apps/mobile && npx eas-cli build --platform ios --profile production --auto-submit"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.3",
+    "@types/node": "^22.7.0"
+  },
+  "overrides": {
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  }
+}

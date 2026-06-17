@@ -1,0 +1,58 @@
+name: Release Bridge
+
+# Tag `bridge-v*` (e.g. git tag bridge-v1.0.1 && git push --tags) to build a
+# signed + notarized macOS .dmg and attach it to a GitHub Release.
+on:
+  push:
+    tags: ["bridge-v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-14
+    defaults:
+      run:
+        working-directory: bridge-desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install
+
+      - name: Import signing certificate
+        if: ${{ secrets.MAC_CERT_P12_BASE64 != '' }}
+        env:
+          CERT_P12: ${{ secrets.MAC_CERT_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
+        run: |
+          echo "$CERT_P12" | base64 --decode > /tmp/cert.p12
+          security create-keychain -p "$CERT_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$CERT_PASSWORD" build.keychain
+          security import /tmp/cert.p12 -k build.keychain -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$CERT_PASSWORD" build.keychain
+          rm -f /tmp/cert.p12
+
+      - name: Build (signed + notarized)
+        env:
+          ELECTROBUN_DEVELOPER_ID: ${{ secrets.ELECTROBUN_DEVELOPER_ID }}
+          ELECTROBUN_TEAMID: ${{ secrets.ELECTROBUN_TEAMID }}
+          ELECTROBUN_APPLEAPIKEYPATH: /tmp/asc_key.p8
+          ELECTROBUN_APPLEAPIKEY: ${{ secrets.ELECTROBUN_APPLEAPIKEY }}
+          ELECTROBUN_APPLEAPIISSUER: ${{ secrets.ELECTROBUN_APPLEAPIISSUER }}
+        run: |
+          if [ -n "${{ secrets.ELECTROBUN_APPLEAPIKEY_P8 }}" ]; then
+            echo "${{ secrets.ELECTROBUN_APPLEAPIKEY_P8 }}" | base64 --decode > /tmp/asc_key.p8
+          fi
+          ./node_modules/.bin/electrobun build --env=stable
+
+      - name: Attach .dmg to the Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: bridge-desktop/artifacts/*.dmg
+          fail_on_unmatched_files: true

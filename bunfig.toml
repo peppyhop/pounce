@@ -1,0 +1,5 @@
+# React Native / Expo + Metro need a flat node_modules (Metro can't resolve
+# bun's default isolated .bun/ symlink store — breaks the transform worker).
+# "hoisted" mirrors the layout npm/yarn produce. EAS reads this too.
+[install]
+linker = "hoisted"

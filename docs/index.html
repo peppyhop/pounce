@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pounce — control your coding agents from your pocket</title>
+<meta name="description" content="Pounce lets you steer Claude, Codex & opencode across all your machines from your phone. Real-time streaming, hold-to-talk voice, and dead-simple QR pairing." />
+<meta property="og:title" content="Pounce — your coding agents, in your pocket" />
+<meta property="og:description" content="Steer Claude, Codex & opencode across every machine from your phone. Real-time, voice-driven, one QR scan to pair." />
+<meta property="og:image" content="./assets/icon.png" />
+<meta property="og:type" content="website" />
+<meta name="theme-color" content="#0a0a0f" />
+<link rel="icon" href="./assets/favicon.png" />
+<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#08080d; --bg2:#0d0c16;
+    --fg:#f2f1f7; --muted:#a8a4ba; --faint:#6f6b85;
+    --accent:#8b5cf6; --accent2:#a78bfa; --accent3:#c4b5fd;
+    --card:rgba(255,255,255,.035); --border:rgba(255,255,255,.09);
+    --ok:#34d399; --warn:#fbbf24;
+    --radius:20px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg); color:var(--fg);
+    font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;
+    line-height:1.6; -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  h1,h2,h3,.brand{font-family:"Space Grotesk",Inter,sans-serif;letter-spacing:-.02em;line-height:1.08}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1140px;margin:0 auto;padding:0 24px}
+  .grad-text{background:linear-gradient(120deg,#fff 10%,var(--accent3) 55%,var(--accent) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+  /* ambient background */
+  .aura{position:fixed;inset:0;z-index:-1;overflow:hidden}
+  .aura::before,.aura::after{content:"";position:absolute;border-radius:50%;filter:blur(110px);opacity:.5}
+  .aura::before{width:760px;height:760px;background:radial-gradient(circle,#7c3aed,transparent 60%);top:-280px;left:-180px;animation:float1 18s ease-in-out infinite}
+  .aura::after{width:680px;height:680px;background:radial-gradient(circle,#4f46e5,transparent 60%);top:240px;right:-220px;animation:float2 22s ease-in-out infinite}
+  @keyframes float1{50%{transform:translate(120px,80px)}}
+  @keyframes float2{50%{transform:translate(-100px,60px)}}
+  .grid-overlay{position:fixed;inset:0;z-index:-1;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:48px 48px;mask-image:radial-gradient(ellipse 80% 60% at 50% 0%,#000 30%,transparent 75%)}
+
+  /* nav */
+  nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);background:rgba(8,8,13,.55);border-bottom:1px solid transparent;transition:border-color .3s}
+  nav.scrolled{border-color:var(--border)}
+  .nav-in{display:flex;align-items:center;justify-content:space-between;height:68px}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:19px}
+  .logo img{width:32px;height:32px;border-radius:9px}
+  .nav-links{display:flex;align-items:center;gap:28px;font-size:14.5px;color:var(--muted)}
+  .nav-links a:hover{color:var(--fg)}
+  .nav-cta{padding:9px 16px;border:1px solid var(--border);border-radius:999px;color:var(--fg)!important;transition:.2s}
+  .nav-cta:hover{background:var(--accent);border-color:var(--accent)}
+  @media(max-width:720px){.nav-links a:not(.nav-cta){display:none}}
+
+  /* hero */
+  .hero{padding:84px 0 40px;display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center}
+  @media(max-width:900px){.hero{grid-template-columns:1fr;text-align:center;padding-top:56px}}
+  .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border:1px solid var(--border);background:var(--card);border-radius:999px;font-size:13px;color:var(--accent3);margin-bottom:22px}
+  .pill .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 4px rgba(52,211,153,.18)}
+  h1{font-size:clamp(38px,6vw,66px);font-weight:700;margin-bottom:18px}
+  .sub{font-size:clamp(16px,2.2vw,20px);color:var(--muted);max-width:540px;margin-bottom:32px}
+  @media(max-width:900px){.sub{margin-inline:auto}}
+  .cta-row{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+  @media(max-width:900px){.cta-row{justify-content:center}}
+
+  /* store + download buttons */
+  .store{display:inline-flex;align-items:center;gap:11px;padding:11px 18px;border-radius:14px;background:#fff;color:#000;transition:transform .2s,box-shadow .2s;border:1px solid #fff}
+  .store:hover{transform:translateY(-3px);box-shadow:0 12px 30px rgba(0,0,0,.4)}
+  .store svg{width:24px;height:24px;flex:none}
+  .store .s-top{font-size:10.5px;line-height:1;opacity:.7;letter-spacing:.02em}
+  .store .s-big{font-size:17px;font-weight:600;line-height:1.15;font-family:"Space Grotesk",sans-serif}
+  .store.dl{background:transparent;color:var(--fg);border:1px solid var(--border)}
+  .store.dl:hover{border-color:var(--accent);background:rgba(139,92,246,.1)}
+  .store.dl .acc{color:var(--accent3)}
+  .store.soon{background:rgba(255,255,255,.05);color:var(--muted);border:1px solid var(--border);cursor:default;position:relative}
+  .store.soon:hover{transform:none;box-shadow:none}
+  .store.soon svg{opacity:.65}
+  .soon-tag{position:absolute;top:-9px;right:-9px;background:linear-gradient(135deg,var(--accent),#6d28d9);color:#fff;font-size:9px;font-weight:700;padding:3px 8px;border-radius:999px;font-family:"Space Grotesk";letter-spacing:.04em;box-shadow:0 3px 10px rgba(124,58,237,.55)}
+  .beta-note{margin-top:18px;font-size:13.5px;color:var(--faint);max-width:520px}
+  .beta-note b{color:var(--muted);font-weight:500}
+  @media(max-width:900px){.beta-note{margin-inline:auto}}
+
+  .agents{margin-top:40px;display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;color:var(--faint);font-size:13.5px}
+  @media(max-width:900px){.agents{justify-content:center}}
+  .agents b{color:var(--muted);font-weight:500}
+  .chip{padding:5px 12px;border:1px solid var(--border);border-radius:999px;color:var(--muted);background:var(--card);font-size:13px}
+
+  /* phone mockup */
+  .phone-stage{position:relative;display:flex;justify-content:center;align-items:center;min-height:540px}
+  .glow{position:absolute;width:340px;height:340px;background:radial-gradient(circle,rgba(139,92,246,.55),transparent 65%);filter:blur(40px);z-index:0}
+  .phone{position:relative;z-index:2;width:288px;height:592px;border-radius:44px;background:linear-gradient(160deg,#16151f,#0c0b12);border:1px solid rgba(255,255,255,.12);box-shadow:0 40px 90px -20px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.08);padding:13px;animation:rise 1s cubic-bezier(.2,.8,.2,1) both}
+  @keyframes rise{from{opacity:0;transform:translateY(40px) rotateX(8deg)}}
+  .screen{height:100%;border-radius:32px;background:radial-gradient(120% 80% at 50% 0%,#15131f,#0a0910);overflow:hidden;display:flex;flex-direction:column;border:1px solid rgba(255,255,255,.05)}
+  .notch{height:26px;display:flex;justify-content:center}
+  .notch::after{content:"";width:96px;height:18px;background:#000;border-radius:0 0 14px 14px}
+  .scr-head{padding:6px 18px 10px}
+  .scr-title{font-family:"Space Grotesk";font-size:22px;font-weight:700}
+  .scr-sub{font-size:11.5px;color:var(--accent3)}
+  .cards{flex:1;padding:4px 12px;display:flex;flex-direction:column;gap:9px}
+  .scard{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:15px;padding:11px 12px;display:flex;gap:10px;align-items:center;opacity:0;transform:translateY(8px);animation:cardin .6s forwards}
+  .scard:nth-child(1){animation-delay:.5s}.scard:nth-child(2){animation-delay:.66s}.scard:nth-child(3){animation-delay:.82s}.scard:nth-child(4){animation-delay:.98s}
+  @keyframes cardin{to{opacity:1;transform:none}}
+  .ava{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:13px;font-weight:700;flex:none;font-family:"Space Grotesk"}
+  .c-body{flex:1;min-width:0}
+  .c-title{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .c-meta{font-size:10.5px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stat{font-size:9.5px;font-weight:600;padding:3px 7px;border-radius:999px;flex:none}
+  .st-need{color:#fde68a;background:rgba(251,191,36,.14)}
+  .st-run{color:#6ee7b7;background:rgba(52,211,153,.14)}
+  .st-idle{color:var(--faint);background:rgba(255,255,255,.05)}
+  .scr-bar{margin:8px 12px 14px;height:50px;border-radius:18px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:space-around;padding:0 14px}
+  .bar-i{font-size:10px;color:var(--faint);display:flex;flex-direction:column;align-items:center;gap:3px}
+  .plus{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#6d28d9);display:grid;place-items:center;color:#fff;font-size:24px;box-shadow:0 8px 20px rgba(124,58,237,.5);animation:pulse 2.4s ease-in-out infinite}
+  @keyframes pulse{50%{box-shadow:0 8px 30px rgba(124,58,237,.85)}}
+  /* floating glyphs */
+  .glyph{position:absolute;z-index:3;font-family:"Space Grotesk";font-weight:700;color:var(--accent2);opacity:.6;animation:bob 6s ease-in-out infinite;text-shadow:0 0 20px rgba(139,92,246,.5)}
+  .g1{top:60px;left:18%;font-size:26px;animation-delay:0s}
+  .g2{top:140px;right:10%;font-size:30px;animation-delay:1.2s;color:var(--accent3)}
+  .g3{bottom:120px;left:8%;font-size:22px;animation-delay:.6s}
+  .g4{bottom:60px;right:16%;font-size:24px;animation-delay:1.8s;color:var(--accent3)}
+  @keyframes bob{50%{transform:translateY(-16px)}}
+
+  /* sections */
+  section{padding:84px 0}
+  .eyebrow{color:var(--accent3);font-weight:600;font-size:13px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px}
+  .sec-title{font-size:clamp(28px,4vw,44px);font-weight:700;max-width:620px}
+  .sec-lead{color:var(--muted);font-size:17px;max-width:560px;margin-top:14px}
+  .center{text-align:center}.center .sec-title,.center .sec-lead{margin-inline:auto}
+
+  .features{margin-top:52px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  @media(max-width:880px){.features{grid-template-columns:1fr 1fr}}
+  @media(max-width:560px){.features{grid-template-columns:1fr}}
+  .feat{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:26px;transition:transform .25s,border-color .25s,background .25s}
+  .feat:hover{transform:translateY(-5px);border-color:rgba(139,92,246,.5);background:rgba(139,92,246,.06)}
+  .feat .ic{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;font-size:22px;background:linear-gradient(135deg,rgba(139,92,246,.25),rgba(139,92,246,.08));border:1px solid rgba(139,92,246,.25);margin-bottom:16px}
+  .feat h3{font-size:19px;margin-bottom:8px}
+  .feat p{color:var(--muted);font-size:14.5px}
+
+  .steps{margin-top:52px;display:grid;grid-template-columns:repeat(3,1fr);gap:22px;counter-reset:s}
+  @media(max-width:760px){.steps{grid-template-columns:1fr}}
+  .step{position:relative;padding:30px 24px;border:1px solid var(--border);border-radius:var(--radius);background:var(--card)}
+  .step::before{counter-increment:s;content:"0" counter(s);font-family:"Space Grotesk";font-weight:700;font-size:30px;background:linear-gradient(120deg,var(--accent3),var(--accent));-webkit-background-clip:text;background-clip:text;color:transparent;display:block;margin-bottom:14px}
+  .step h3{font-size:19px;margin-bottom:8px}
+  .step p{color:var(--muted);font-size:14.5px}
+
+  /* CTA */
+  .cta-box{margin-top:0;text-align:center;background:linear-gradient(160deg,rgba(139,92,246,.16),rgba(79,70,229,.06));border:1px solid rgba(139,92,246,.3);border-radius:30px;padding:64px 28px;position:relative;overflow:hidden}
+  .cta-box h2{font-size:clamp(28px,4vw,42px);margin-bottom:14px}
+  .cta-box p{color:var(--muted);margin-bottom:30px;font-size:17px}
+  .cta-box .cta-row{justify-content:center}
+
+  footer{border-top:1px solid var(--border);padding:40px 0;color:var(--faint);font-size:14px}
+  .foot-in{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+  .foot-links{display:flex;gap:22px}
+  .foot-links a:hover{color:var(--fg)}
+
+  /* reveal on scroll */
+  .reveal{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.8,.2,1)}
+  .reveal.in{opacity:1;transform:none}
+</style>
+</head>
+<body>
+<div class="aura"></div>
+<div class="grid-overlay"></div>
+
+<nav id="nav">
+  <div class="wrap nav-in">
+    <a class="logo" href="#top"><img src="./assets/icon.png" alt="Pounce" /> Pounce</a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="https://github.com/peppyhop/pounce" target="_blank" rel="noopener">GitHub</a>
+      <a class="nav-cta" href="#download">Get the app</a>
+    </div>
+  </div>
+</nav>
+
+<header class="wrap hero" id="top">
+  <div>
+    <span class="pill"><span class="dot"></span> Now in beta · iOS &amp; Android</span>
+    <h1>Your coding agents,<br><span class="grad-text">in your pocket.</span></h1>
+    <p class="sub">Pounce lets you steer Claude, Codex &amp; opencode across every machine you own — from your phone. Watch them work in real time, jump in by voice, and ship from anywhere.</p>
+    <div class="cta-row" id="download">
+      <span class="store soon" role="img" aria-label="App Store — coming soon">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.37 1.43c.07 1.06-.32 2.09-1 2.86-.71.79-1.86 1.4-2.98 1.31-.09-1.03.39-2.1 1.04-2.78.72-.78 1.97-1.36 2.94-1.39zM20.5 17.2c-.55 1.27-.82 1.84-1.53 2.96-.99 1.56-2.39 3.51-4.12 3.52-1.54.01-1.94-1-4.03-.99-2.09.01-2.53 1.01-4.07.99-1.73-.02-3.05-1.78-4.04-3.34C-.04 16.46-.34 11.34 1.36 8.62c1.2-1.93 3.1-3.06 4.89-3.06 1.82 0 2.96 1 4.46 1 1.46 0 2.35-1 4.46-1 1.59 0 3.28.87 4.48 2.37-3.94 2.16-3.3 7.78.85 9.27z"/></svg>
+        <span><span class="s-top">Coming soon to the</span><br><span class="s-big">App Store</span></span>
+        <span class="soon-tag">Soon</span>
+      </span>
+      <span class="store soon" role="img" aria-label="Google Play — coming soon">
+        <svg viewBox="0 0 24 24"><path fill="#00d2ff" d="M3.6 1.8 13.4 12 3.6 22.2c-.4-.2-.6-.6-.6-1.1V2.9c0-.5.2-.9.6-1.1z"/><path fill="#00f076" d="M16.9 8.5 5.6.9 3.9 1.9 13.4 12l3.5-3.5z"/><path fill="#ff3a44" d="M16.9 15.5 13.4 12l-9.5 10.1 1.7 1 11.3-7.6z"/><path fill="#ffce00" d="m16.9 8.5-3.5 3.5 3.5 3.5 3.9-2.3c.7-.4.7-1.9 0-2.4l-3.9-2.3z"/></svg>
+        <span><span class="s-top">COMING SOON ON</span><br><span class="s-big">Google Play</span></span>
+        <span class="soon-tag">Soon</span>
+      </span>
+      <a class="store dl" href="https://github.com/peppyhop/pounce/releases/latest" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 16l-5-5 1.4-1.4L11 12.2V3h2v9.2l2.6-2.6L17 11l-5 5zM5 19h14v2H5z"/></svg>
+        <span><span class="s-top acc">Available now</span><br><span class="s-big">Bridge for Mac</span></span>
+      </a>
+    </div>
+    <p class="beta-note">📱 iOS &amp; Android are in <b>private beta</b> — public launch soon. Grab the free, notarized <b>Mac Bridge</b> now to get set up.</p>
+    <div class="agents">
+      <b>Works with</b>
+      <span class="chip">Claude</span>
+      <span class="chip">Codex</span>
+      <span class="chip">opencode</span>
+      <span class="chip">+ more</span>
+    </div>
+  </div>
+
+  <div class="phone-stage">
+    <div class="glow"></div>
+    <span class="glyph g1">&lt;/&gt;</span>
+    <span class="glyph g2">{ }</span>
+    <span class="glyph g3">&gt;_</span>
+    <span class="glyph g4">⌘</span>
+    <div class="phone">
+      <div class="screen">
+        <div class="notch"></div>
+        <div class="scr-head">
+          <div class="scr-title">Pounce</div>
+          <div class="scr-sub">2 need you</div>
+        </div>
+        <div class="cards">
+          <div class="scard">
+            <div class="ava" style="background:linear-gradient(135deg,#d97757,#b45309);color:#fff">C</div>
+            <div class="c-body"><div class="c-title">Refactor auth flow</div><div class="c-meta">mac-mini · api · feat/oauth</div></div>
+            <span class="stat st-need">needs you</span>
+          </div>
+          <div class="scard">
+            <div class="ava" style="background:linear-gradient(135deg,#10a37f,#047857);color:#fff">Cx</div>
+            <div class="c-body"><div class="c-title">Add cart webhook tests</div><div class="c-meta">macbook · shop · main</div></div>
+            <span class="stat st-run">running</span>
+          </div>
+          <div class="scard">
+            <div class="ava" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:#fff">oc</div>
+            <div class="c-body"><div class="c-title">Migrate to Legend v3</div><div class="c-meta">studio · mobile · refactor</div></div>
+            <span class="stat st-need">needs you</span>
+          </div>
+          <div class="scard">
+            <div class="ava" style="background:linear-gradient(135deg,#d97757,#b45309);color:#fff">C</div>
+            <div class="c-body"><div class="c-title">Fix flaky CI on arm64</div><div class="c-meta">mac-mini · infra · ci</div></div>
+            <span class="stat st-idle">done</span>
+          </div>
+        </div>
+        <div class="scr-bar">
+          <div class="bar-i">🔍<span>Find</span></div>
+          <div class="plus">＋</div>
+          <div class="bar-i">⌥<span>Filter</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="features">
+  <div class="wrap">
+    <div class="reveal">
+      <div class="eyebrow">Why Pounce</div>
+      <h2 class="sec-title">One thumb. Every agent. Every machine.</h2>
+      <p class="sec-lead">Built for developers running multiple coding agents across a Mac mini, a laptop, and a studio box — who want to keep things moving without sitting at a desk.</p>
+    </div>
+    <div class="features">
+      <div class="feat reveal"><div class="ic">📡</div><h3>Real-time streaming</h3><p>Watch every agent think and edit live, token by token, exactly as if you were at the terminal.</p></div>
+      <div class="feat reveal"><div class="ic">🎙️</div><h3>Hold to talk</h3><p>Press and speak. Pounce transcribes on-device and runs your command — navigate, filter, or fire off a new task.</p></div>
+      <div class="feat reveal"><div class="ic">🖥️</div><h3>Multi-device fleet</h3><p>Every machine you pair shows up in one list. Filter by device or agent; jump between them instantly.</p></div>
+      <div class="feat reveal"><div class="ic">🐾</div><h3>"Needs you" first</h3><p>Threads waiting on your input float to the top, so you always know where to look — and nothing stalls.</p></div>
+      <div class="feat reveal"><div class="ic">🔒</div><h3>Secure pairing</h3><p>Scan a QR once. A per-machine token keeps the link private, with a direct identity for reaching home later.</p></div>
+      <div class="feat reveal"><div class="ic">🚀</div><h3>Review &amp; ship</h3><p>See the diff, commit, push, open a PR — finish the job from your phone without breaking flow.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="reveal center">
+      <div class="eyebrow">Set up in 2 minutes</div>
+      <h2 class="sec-title">How it works</h2>
+    </div>
+    <div class="steps">
+      <div class="step reveal"><h3>Run the Bridge</h3><p>Download the free Mac app and double-click. It starts your agent host automatically — no terminal, no config.</p></div>
+      <div class="step reveal"><h3>Scan the QR</h3><p>Open Pounce on your phone, tap Sync, and point the camera at the code in the Bridge window. That's the whole setup.</p></div>
+      <div class="step reveal"><h3>Pounce from anywhere</h3><p>Your sessions sync instantly. Steer agents, reply, review diffs, and ship — one-handed, from the couch or the commute.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="cta-box reveal">
+      <h2>Ready to pounce?</h2>
+      <p>iOS &amp; Android land soon. Set up the free Mac Bridge today — you'll be ready on day one.</p>
+      <div class="cta-row">
+        <a class="store dl" href="https://github.com/peppyhop/pounce/releases/latest" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 16l-5-5 1.4-1.4L11 12.2V3h2v9.2l2.6-2.6L17 11l-5 5zM5 19h14v2H5z"/></svg>
+          <span><span class="s-top acc">Available now</span><br><span class="s-big">Bridge for Mac</span></span>
+        </a>
+        <span class="store soon" role="img" aria-label="App Store — coming soon">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.37 1.43c.07 1.06-.32 2.09-1 2.86-.71.79-1.86 1.4-2.98 1.31-.09-1.03.39-2.1 1.04-2.78.72-.78 1.97-1.36 2.94-1.39zM20.5 17.2c-.55 1.27-.82 1.84-1.53 2.96-.99 1.56-2.39 3.51-4.12 3.52-1.54.01-1.94-1-4.03-.99-2.09.01-2.53 1.01-4.07.99-1.73-.02-3.05-1.78-4.04-3.34C-.04 16.46-.34 11.34 1.36 8.62c1.2-1.93 3.1-3.06 4.89-3.06 1.82 0 2.96 1 4.46 1 1.46 0 2.35-1 4.46-1 1.59 0 3.28.87 4.48 2.37-3.94 2.16-3.3 7.78.85 9.27z"/></svg>
+          <span><span class="s-top">Coming soon to the</span><br><span class="s-big">App Store</span></span>
+          <span class="soon-tag">Soon</span>
+        </span>
+        <span class="store soon" role="img" aria-label="Google Play — coming soon">
+          <svg viewBox="0 0 24 24"><path fill="#00d2ff" d="M3.6 1.8 13.4 12 3.6 22.2c-.4-.2-.6-.6-.6-1.1V2.9c0-.5.2-.9.6-1.1z"/><path fill="#00f076" d="M16.9 8.5 5.6.9 3.9 1.9 13.4 12l3.5-3.5z"/><path fill="#ff3a44" d="M16.9 15.5 13.4 12l-9.5 10.1 1.7 1 11.3-7.6z"/><path fill="#ffce00" d="m16.9 8.5-3.5 3.5 3.5 3.5 3.9-2.3c.7-.4.7-1.9 0-2.4l-3.9-2.3z"/></svg>
+          <span><span class="s-top">COMING SOON ON</span><br><span class="s-big">Google Play</span></span>
+          <span class="soon-tag">Soon</span>
+        </span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-in">
+    <a class="logo" href="#top" style="font-size:17px"><img src="./assets/favicon.png" alt="" style="width:26px;height:26px;border-radius:7px"/> Pounce</a>
+    <div class="foot-links">
+      <a href="https://github.com/peppyhop/pounce" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://github.com/peppyhop/pounce/releases/latest" target="_blank" rel="noopener">Mac Bridge</a>
+      <a href="#features">Features</a>
+    </div>
+    <div>© 2026 Peppyhop · Pounce</div>
+  </div>
+</footer>
+
+<script>
+  const nav=document.getElementById('nav');
+  addEventListener('scroll',()=>nav.classList.toggle('scrolled',scrollY>10));
+  const io=new IntersectionObserver((es)=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.12});
+  document.querySelectorAll('.reveal').forEach((el,i)=>{el.style.transitionDelay=(i%3*70)+'ms';io.observe(el)});
+</script>
+</body>
+</html>

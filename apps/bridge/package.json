@@ -1,0 +1,17 @@
+{
+  "name": "@litter/bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "LAN HTTP bridge that proxies the Pounce app to the Iroh-only alleycat daemon via `kittylitter probe`.",
+  "bin": {
+    "pounce-bridge": "./server.mjs"
+  },
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "pounce-bridge-app",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Pounce Bridge — a tiny double-click desktop app that runs the bridge and shows a pairing QR.",
+  "scripts": {
+    "dev": "electrobun dev",
+    "build": "electrobun build"
+  },
+  "dependencies": {
+    "electrobun": "^1.0.0",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0"
+  }
+}

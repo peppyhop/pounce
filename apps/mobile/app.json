@@ -1,0 +1,72 @@
+{
+  "expo": {
+    "name": "Pounce",
+    "slug": "pounce",
+    "owner": "peppyhop",
+    "scheme": "pounce",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#0B0B0F",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pounce.app",
+      "buildNumber": "10",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocalNetworkUsageDescription": "Pounce connects to the alleycat host running on your local network to load your projects and conversations.",
+        "NSPhotoLibraryUsageDescription": "Attach screenshots or images from your library to a message for the agent.",
+        "NSCameraUsageDescription": "Scan the pairing code shown on your computer to sync your devices.",
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true
+        }
+      }
+    },
+    "android": {
+      "package": "com.pounce.app",
+      "versionCode": 10,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FAF7FB"
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-sqlite",
+        {
+          "enableFTS": true
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#0B0B0F"
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Pounce uses the microphone for voice control — hold ＋ and speak a command.",
+          "speechRecognitionPermission": "Pounce transcribes your spoken commands to navigate and filter your tasks."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "05d6afd2-8ee9-4f56-976c-9e5849818adc"
+      }
+    }
+  }
+}
