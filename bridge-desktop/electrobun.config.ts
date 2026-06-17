@@ -4,7 +4,7 @@ export default {
   app: {
     name: "Pounce Bridge",
     identifier: "app.pounce.bridge",
-    version: "1.0.0",
+    version: "1.0.1",
   },
   runtime: {
     // It's a tray app — closing the window leaves it running in the menu bar.
