@@ -2,7 +2,7 @@ import { BrowserWindow, Tray } from "electrobun/bun";
 // The bridge lives in the repo; the desktop app just runs it in-process and
 // renders the pairing QR. quiet:true suppresses the CLI console output.
 // @ts-expect-error — plain .mjs, no types
-import { startBridge, kittylitterPath } from "../../../apps/bridge/server.mjs";
+import { startBridge, kittylitterPath } from "../../server/server.mjs";
 import { ensureDaemon } from "./daemon";
 
 const PORT = Number(process.env.BRIDGE_PORT || 8099);

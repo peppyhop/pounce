@@ -49,6 +49,7 @@ jobs:
           if [ -n "${{ secrets.ELECTROBUN_APPLEAPIKEY_P8 }}" ]; then
             echo "${{ secrets.ELECTROBUN_APPLEAPIKEY_P8 }}" | base64 --decode > /tmp/asc_key.p8
           fi
+          mkdir -p server && cp ../apps/bridge/server.mjs server/server.mjs
           ./node_modules/.bin/electrobun build --env=stable
 
       - name: Attach .dmg to the Release

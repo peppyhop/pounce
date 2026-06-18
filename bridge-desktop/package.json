@@ -5,8 +5,9 @@
   "type": "module",
   "description": "Pounce Bridge — a tiny double-click desktop app that runs the bridge and shows a pairing QR.",
   "scripts": {
-    "dev": "electrobun dev",
-    "build": "electrobun build"
+    "sync-server": "mkdir -p server && cp ../apps/bridge/server.mjs server/server.mjs",
+    "dev": "bun run sync-server && electrobun dev",
+    "build": "bun run sync-server && electrobun build"
   },
   "dependencies": {
     "electrobun": "^1.0.0",

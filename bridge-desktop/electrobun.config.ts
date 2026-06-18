@@ -23,10 +23,11 @@ export default {
     mac: {
       bundleCEF: false,
       icons: "assets/icon.iconset",
-      // Sign + notarize only when credentials are present (CI / release builds);
-      // local dev builds skip both automatically.
+      // Sign when a Developer ID is present; only let Electrobun notarize when
+      // notarization creds are also present. (release-bridge.sh signs here and
+      // notarizes separately via the `asc` CLI's stored credentials.)
       codesign: !!process.env.ELECTROBUN_DEVELOPER_ID,
-      notarize: !!process.env.ELECTROBUN_DEVELOPER_ID,
+      notarize: !!(process.env.ELECTROBUN_APPLEID || process.env.ELECTROBUN_APPLEAPIKEY),
     },
     linux: { bundleCEF: false },
     win: { bundleCEF: false },
