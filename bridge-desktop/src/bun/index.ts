@@ -37,22 +37,31 @@ openWindow();
 // one). Calling setImage() afterward would drop the template flag.
 const tray = new Tray({ title: "", image: "views://tray.png", template: true, width: 18, height: 18 });
 
-// Rebuild the menu with a live, non-clickable status line at the top.
-function renderMenu(statusLabel: string) {
+// Two labels drive the menu: the live connection status (top, not clickable)
+// and the manual updater item's transient state.
+let connLabel = "○ Ready to pair";
+let updateLabel = "Check for Updates…";
+let checking = false;
+
+function renderMenu() {
   tray.setMenu([
-    { type: "normal", label: statusLabel, enabled: false },
+    { type: "normal", label: connLabel, enabled: false },
     { type: "divider" },
     { type: "normal", label: "Show pairing window", action: "show" },
+    { type: "normal", label: updateLabel, action: "check-update", enabled: !checking },
     { type: "divider" },
     { type: "normal", label: "Quit Pounce", action: "quit" },
   ]);
 }
-renderMenu("○ Ready to pair");
+renderMenu();
 
 tray.on("tray-clicked", (event: any) => {
   switch (event.data?.action) {
     case "show":
       openWindow();
+      break;
+    case "check-update":
+      void checkForUpdateNow();
       break;
     case "quit":
       tray.remove();
@@ -80,7 +89,8 @@ async function pollStatus() {
   }
   if (label !== lastLabel) {
     lastLabel = label;
-    renderMenu(label);
+    connLabel = label;
+    renderMenu();
     tray.setTitle(label.startsWith("●") ? "●" : ""); // a green-ish dot in the menu bar when connected
   }
 }
@@ -114,5 +124,37 @@ async function applyUpdateIfIdle() {
 void checkForUpdate();
 setInterval(() => void checkForUpdate(), 6 * 60 * 60 * 1000); // re-check every 6h
 setInterval(() => void applyUpdateIfIdle(), 60 * 1000);       // apply when idle
+
+// Manual "Check for Updates" — the same machinery as the background path, but
+// triggered on demand with immediate tray feedback. Keeps the idle-safety: if a
+// phone is connected, the downloaded update is applied later by applyUpdateIfIdle
+// rather than interrupting the session.
+async function checkForUpdateNow() {
+  if (checking) return;
+  checking = true;
+  updateLabel = "Checking for updates…";
+  renderMenu();
+  try {
+    const upd = await Updater.checkForUpdate();
+    if (upd.updateAvailable) {
+      updateLabel = "Downloading update…";
+      renderMenu();
+      await Updater.downloadUpdate();
+      updatePending = true;
+      updateLabel = "Update ready — applies when idle";
+      void applyUpdateIfIdle(); // relaunches now if no phone is connected
+    } else {
+      updateLabel = "You're up to date";
+    }
+  } catch (e) {
+    console.error("[update] manual check failed:", e);
+    updateLabel = "Update check failed";
+  } finally {
+    checking = false;
+    renderMenu();
+    // Restore the default label after a few seconds.
+    setTimeout(() => { if (!checking) { updateLabel = "Check for Updates…"; renderMenu(); } }, 5000);
+  }
+}
 
 console.log("Pounce is running. Scan the QR in the window to connect your phone.");
