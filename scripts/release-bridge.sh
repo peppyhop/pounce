@@ -19,18 +19,24 @@ TEAMID="${ELECTROBUN_TEAMID:-RH8HV49PWL}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP="$ROOT/bridge-desktop"
 
-[ -f "$CER" ] || { echo "❌ cert not found: $CER  (create it from $SIGN_DIR/devid.csr)"; exit 1; }
-[ -f "$KEY" ] || { echo "❌ private key not found: $KEY"; exit 1; }
-
-echo "▸ Importing Developer ID identity into the keychain…"
-openssl x509 -inform DER -in "$CER" -out "$SIGN_DIR/devid.pem" 2>/dev/null || cp "$CER" "$SIGN_DIR/devid.pem"
-openssl pkcs12 -export -legacy -inkey "$KEY" -in "$SIGN_DIR/devid.pem" \
-  -out "$P12" -passout "pass:$P12_PASS" -name "Developer ID Application"
-security import "$P12" -k "$HOME/Library/Keychains/login.keychain-db" \
-  -P "$P12_PASS" -T /usr/bin/codesign >/dev/null 2>&1 || \
-security import "$P12" -P "$P12_PASS" -T /usr/bin/codesign
+# Reuse an already-imported Developer ID identity if the keychain has one — then
+# no .cer is needed. Only import from cert+key when the keychain has none.
 ID=$(security find-identity -v -p codesigning | grep "Developer ID Application" | head -1 | sed -E 's/.*"(.*)"/\1/')
-[ -n "$ID" ] || { echo "❌ no Developer ID Application identity after import"; exit 1; }
+if [ -z "$ID" ]; then
+  [ -f "$CER" ] || { echo "❌ no Developer ID identity in keychain and cert not found: $CER  (create it from $SIGN_DIR/devid.csr)"; exit 1; }
+  [ -f "$KEY" ] || { echo "❌ private key not found: $KEY"; exit 1; }
+  echo "▸ Importing Developer ID identity into the keychain…"
+  openssl x509 -inform DER -in "$CER" -out "$SIGN_DIR/devid.pem" 2>/dev/null || cp "$CER" "$SIGN_DIR/devid.pem"
+  openssl pkcs12 -export -legacy -inkey "$KEY" -in "$SIGN_DIR/devid.pem" \
+    -out "$P12" -passout "pass:$P12_PASS" -name "Developer ID Application"
+  security import "$P12" -k "$HOME/Library/Keychains/login.keychain-db" \
+    -P "$P12_PASS" -T /usr/bin/codesign >/dev/null 2>&1 || \
+  security import "$P12" -P "$P12_PASS" -T /usr/bin/codesign
+  ID=$(security find-identity -v -p codesigning | grep "Developer ID Application" | head -1 | sed -E 's/.*"(.*)"/\1/')
+  [ -n "$ID" ] || { echo "❌ no Developer ID Application identity after import"; exit 1; }
+else
+  echo "▸ Using existing Developer ID identity from keychain."
+fi
 echo "  identity: $ID"
 
 echo "▸ Building signed app…"
