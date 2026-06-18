@@ -15,9 +15,9 @@ void ensureDaemon(kittylitterPath() as string)
 
 const info = await startBridge({ port: PORT, quiet: true });
 if (info?.error && !info.alreadyRunning) {
-  console.error("Pounce Bridge could not start:", info.error);
+  console.error("Pounce could not start:", info.error);
 } else if (info?.alreadyRunning) {
-  console.log(`A Pounce Bridge is already running on ${PORT}; showing its status.`);
+  console.log(`A Pounce is already running on ${PORT}; showing its status.`);
 }
 
 let win: BrowserWindow | null = null;
@@ -25,7 +25,7 @@ function openWindow() {
   // Load the UI straight from the bridge so /ui and /qr.svg are same-origin and
   // the port is implicit. The server is already listening (awaited above).
   win = new BrowserWindow({
-    title: "Pounce Bridge",
+    title: "Pounce",
     url: `http://127.0.0.1:${PORT}/`,
     frame: { width: 460, height: 640, x: 240, y: 120 },
   });
@@ -44,7 +44,7 @@ function renderMenu(statusLabel: string) {
     { type: "divider" },
     { type: "normal", label: "Show pairing window", action: "show" },
     { type: "divider" },
-    { type: "normal", label: "Quit Pounce Bridge", action: "quit" },
+    { type: "normal", label: "Quit Pounce", action: "quit" },
   ]);
 }
 renderMenu("○ Ready to pair");
@@ -115,4 +115,4 @@ void checkForUpdate();
 setInterval(() => void checkForUpdate(), 6 * 60 * 60 * 1000); // re-check every 6h
 setInterval(() => void applyUpdateIfIdle(), 60 * 1000);       // apply when idle
 
-console.log("Pounce Bridge is running. Scan the QR in the window to connect your phone.");
+console.log("Pounce is running. Scan the QR in the window to connect your phone.");

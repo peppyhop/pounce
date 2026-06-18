@@ -2,9 +2,9 @@ import type { ElectrobunConfig } from "electrobun";
 
 export default {
   app: {
-    name: "Pounce Bridge",
+    name: "Pounce",
     identifier: "app.pounce.bridge",
-    version: "1.0.2",
+    version: "1.0.3",
   },
   // Auto-update: the app checks this URL on launch and self-updates (tiny BSDIFF
   // deltas, full bundle fallback). GitHub's /releases/latest/download always
