@@ -1,4 +1,4 @@
-import { BrowserWindow, Tray } from "electrobun/bun";
+import { BrowserWindow, Tray, Updater } from "electrobun/bun";
 // The bridge lives in the repo; the desktop app just runs it in-process and
 // renders the pairing QR. quiet:true suppresses the CLI console output.
 // @ts-expect-error — plain .mjs, no types
@@ -86,5 +86,33 @@ async function pollStatus() {
 }
 void pollStatus();
 setInterval(() => void pollStatus(), 3000);
+
+// Auto-update: download new releases in the background, then apply (relaunch
+// into the new version) only when no phone is connected — so a session is never
+// interrupted. Disabled automatically on the dev channel.
+let updatePending = false;
+async function checkForUpdate() {
+  try {
+    const info = await Updater.checkForUpdate();
+    if (info.updateAvailable) {
+      await Updater.downloadUpdate();
+      updatePending = true;
+      console.log("[update] downloaded a new version; will apply when idle.");
+    }
+  } catch { /* offline or no release host — ignore */ }
+}
+async function applyUpdateIfIdle() {
+  if (!updatePending) return;
+  try {
+    const r = await fetch(`http://127.0.0.1:${PORT}/ui`, { signal: AbortSignal.timeout(2000) });
+    if ((await r.json())?.connected) return; // a phone is active — wait
+  } catch { /* treat unreachable as idle */ }
+  updatePending = false;
+  console.log("[update] applying update and relaunching…");
+  try { await Updater.applyUpdate(); } catch (e) { console.error("[update] apply failed:", e); }
+}
+void checkForUpdate();
+setInterval(() => void checkForUpdate(), 6 * 60 * 60 * 1000); // re-check every 6h
+setInterval(() => void applyUpdateIfIdle(), 60 * 1000);       // apply when idle
 
 console.log("Pounce Bridge is running. Scan the QR in the window to connect your phone.");

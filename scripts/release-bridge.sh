@@ -55,7 +55,15 @@ cp "$DMG" artifacts/PounceBridge.dmg
 VERSION="v$(node -p "require('./package.json').version" 2>/dev/null || echo 1.0.0)"
 echo "▸ Creating GitHub Release ${VERSION}…"
 cd "$ROOT"
-gh release create "$VERSION" "$APP/artifacts/PounceBridge.dmg" \
+# Upload the installer + the auto-update artifacts (update.json + bundle + any
+# BSDIFF patch). The updater fetches these by their `stable-…` names from the
+# release's /latest/download URL, so existing installs self-update.
+ASSETS=("$APP/artifacts/PounceBridge.dmg")
+for f in "$APP/artifacts/"stable-macos-*; do
+  case "$f" in *.dmg) continue ;; esac   # skip the duplicate stable-*.dmg
+  ASSETS+=("$f")
+done
+gh release create "$VERSION" "${ASSETS[@]}" \
   --title "Pounce Bridge ${VERSION}" \
-  --notes "Signed + notarized macOS build (Apple Silicon). Download PounceBridge.dmg, open it, drag Pounce Bridge to Applications, launch, and scan the QR with the Pounce app."
-echo "✅ Done — notarized build is live on the Releases page."
+  --notes "Signed + notarized macOS build (Apple Silicon). Download PounceBridge.dmg, open it, drag Pounce Bridge to Applications, launch, and scan the QR with the Pounce app. Installs from v1.0.2+ update automatically."
+echo "✅ Done — notarized build + update artifacts are live on the Releases page."

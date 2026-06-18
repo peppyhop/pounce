@@ -4,7 +4,13 @@ export default {
   app: {
     name: "Pounce Bridge",
     identifier: "app.pounce.bridge",
-    version: "1.0.1",
+    version: "1.0.2",
+  },
+  // Auto-update: the app checks this URL on launch and self-updates (tiny BSDIFF
+  // deltas, full bundle fallback). GitHub's /releases/latest/download always
+  // points at the newest non-prerelease, so each release ships itself.
+  release: {
+    baseUrl: "https://github.com/peppyhop/pounce/releases/latest/download",
   },
   runtime: {
     // It's a tray app — closing the window leaves it running in the menu bar.

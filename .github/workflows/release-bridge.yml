@@ -52,8 +52,11 @@ jobs:
           mkdir -p server && cp ../apps/bridge/server.mjs server/server.mjs
           ./node_modules/.bin/electrobun build --env=stable
 
-      - name: Attach .dmg to the Release
+      - name: Attach installer + auto-update artifacts to the Release
         uses: softprops/action-gh-release@v2
         with:
-          files: bridge-desktop/artifacts/*.dmg
+          files: |
+            bridge-desktop/artifacts/*.dmg
+            bridge-desktop/artifacts/*-update.json
+            bridge-desktop/artifacts/*.app.tar.zst
           fail_on_unmatched_files: true
