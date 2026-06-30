@@ -96,6 +96,7 @@
   .phone{position:relative;z-index:2;width:288px;height:592px;border-radius:44px;background:linear-gradient(160deg,#16151f,#0c0b12);border:1px solid rgba(255,255,255,.12);box-shadow:0 40px 90px -20px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.08);padding:13px;animation:rise 1s cubic-bezier(.2,.8,.2,1) both}
   @keyframes rise{from{opacity:0;transform:translateY(40px) rotateX(8deg)}}
   .screen{height:100%;border-radius:32px;background:radial-gradient(120% 80% at 50% 0%,#15131f,#0a0910);overflow:hidden;display:flex;flex-direction:column;border:1px solid rgba(255,255,255,.05)}
+  .screen-shot{width:100%;height:100%;object-fit:cover;object-position:top center;display:block}
   .notch{height:26px;display:flex;justify-content:center}
   .notch::after{content:"";width:96px;height:18px;background:#000;border-radius:0 0 14px 14px}
   .scr-head{padding:6px 18px 10px}
@@ -131,6 +132,12 @@
   .sec-title{font-size:clamp(28px,4vw,44px);font-weight:700;max-width:620px}
   .sec-lead{color:var(--muted);font-size:17px;max-width:560px;margin-top:14px}
   .center{text-align:center}.center .sec-title,.center .sec-lead{margin-inline:auto}
+
+  .shots{margin-top:52px;display:grid;grid-template-columns:repeat(4,1fr);gap:22px;max-width:1120px;margin-inline:auto}
+  .shots img{width:100%;border-radius:24px;border:1px solid var(--border);box-shadow:0 36px 70px -28px rgba(0,0,0,.8);transition:transform .3s}
+  .shots img:hover{transform:translateY(-8px)}
+  @media(max-width:880px){.shots{grid-template-columns:repeat(2,1fr);max-width:640px}}
+  @media(max-width:460px){.shots{grid-template-columns:1fr;max-width:320px}}
 
   .features{margin-top:52px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
   @media(max-width:880px){.features{grid-template-columns:1fr 1fr}}
@@ -219,38 +226,7 @@
     <span class="glyph g4">⌘</span>
     <div class="phone">
       <div class="screen">
-        <div class="notch"></div>
-        <div class="scr-head">
-          <div class="scr-title">Pounce</div>
-          <div class="scr-sub">2 need you</div>
-        </div>
-        <div class="cards">
-          <div class="scard">
-            <div class="ava" style="background:linear-gradient(135deg,#d97757,#b45309);color:#fff">C</div>
-            <div class="c-body"><div class="c-title">Refactor auth flow</div><div class="c-meta">mac-mini · api · feat/oauth</div></div>
-            <span class="stat st-need">needs you</span>
-          </div>
-          <div class="scard">
-            <div class="ava" style="background:linear-gradient(135deg,#10a37f,#047857);color:#fff">Cx</div>
-            <div class="c-body"><div class="c-title">Add cart webhook tests</div><div class="c-meta">macbook · shop · main</div></div>
-            <span class="stat st-run">running</span>
-          </div>
-          <div class="scard">
-            <div class="ava" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:#fff">oc</div>
-            <div class="c-body"><div class="c-title">Migrate to Legend v3</div><div class="c-meta">studio · mobile · refactor</div></div>
-            <span class="stat st-need">needs you</span>
-          </div>
-          <div class="scard">
-            <div class="ava" style="background:linear-gradient(135deg,#d97757,#b45309);color:#fff">C</div>
-            <div class="c-body"><div class="c-title">Fix flaky CI on arm64</div><div class="c-meta">mac-mini · infra · ci</div></div>
-            <span class="stat st-idle">done</span>
-          </div>
-        </div>
-        <div class="scr-bar">
-          <div class="bar-i">🔍<span>Find</span></div>
-          <div class="plus">＋</div>
-          <div class="bar-i">⌥<span>Filter</span></div>
-        </div>
+        <img class="screen-shot" src="./assets/screen-home.png" alt="Pounce home — every coding agent across all your machines, on one screen" />
       </div>
     </div>
   </div>
@@ -270,6 +246,22 @@
       <div class="feat reveal"><div class="ic">🐾</div><h3>"Needs you" first</h3><p>Threads waiting on your input float to the top, so you always know where to look — and nothing stalls.</p></div>
       <div class="feat reveal"><div class="ic">🔒</div><h3>Secure pairing</h3><p>Scan a QR once. A per-machine token keeps the link private, with a direct identity for reaching home later.</p></div>
       <div class="feat reveal"><div class="ic">🚀</div><h3>Review &amp; ship</h3><p>See the diff, commit, push, open a PR — finish the job from your phone without breaking flow.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="screens">
+  <div class="wrap">
+    <div class="reveal center">
+      <div class="eyebrow">See it in action</div>
+      <h2 class="sec-title">Every agent, in the palm of your hand</h2>
+      <p class="sec-lead">From a glanceable fleet to a live agent thread to a one-tap PR — the whole loop, on your phone.</p>
+    </div>
+    <div class="shots">
+      <img class="reveal" src="./assets/shot-home.png" alt="Pounce home screen — all your coding agents across every machine, sorted by what needs you" />
+      <img class="reveal" src="./assets/shot-session.png" alt="Live agent session — reasoning, tool calls, diffs and terminal output streaming in real time" />
+      <img class="reveal" src="./assets/shot-voice.png" alt="Hold to talk — steer any agent by voice, hands-free" />
+      <img class="reveal" src="./assets/shot-changes.png" alt="Review the diff and commit, push, or open a PR straight from your phone" />
     </div>
   </div>
 </section>

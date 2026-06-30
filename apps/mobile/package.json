@@ -14,7 +14,7 @@
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
     "@gorhom/bottom-sheet": "^5.2.9",
-    "@legendapp/list": "^3.0.4",
+    "@legendapp/list": "^3.2.0",
     "@legendapp/state": "^3.0.0-beta.47",
     "@litter/nitro": "workspace:*",
     "@litter/runtime": "workspace:*",

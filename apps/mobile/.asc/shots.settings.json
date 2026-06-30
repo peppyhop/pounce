@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "app": {
+    "bundle_id": "com.pounce.app",
+    "project": "ios/Pounce.xcworkspace",
+    "scheme": "Pounce",
+    "simulator_udid": "booted"
+  },
+  "paths": {
+    "plan": ".asc/screenshots.json",
+    "raw_dir": "./screenshots/raw",
+    "framed_dir": "./screenshots/framed"
+  },
+  "pipeline": {
+    "frame_enabled": true,
+    "upload_enabled": false
+  },
+  "upload": {
+    "version_localization_id": "95901b75-b084-4c05-9121-2c88279c0604",
+    "device_type": "IPHONE_69",
+    "source_dir": "./screenshots/framed"
+  }
+}
