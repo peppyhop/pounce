@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>How Pounce works — connect your computer in 2 minutes</title>
+<meta name="description" content="Pounce is a companion for the coding agents already running on your computer. Install the free Bridge, scan one QR code, and steer Claude, Codex & opencode from your phone. Here's the whole setup, step by step." />
+<meta property="og:title" content="How Pounce works — set up in 2 minutes" />
+<meta property="og:description" content="Run the Bridge on your Mac, scan one QR with your phone, and your coding agents show up. A visual, step-by-step walkthrough." />
+<meta property="og:image" content="./assets/icon.png" />
+<meta property="og:type" content="website" />
+<meta name="theme-color" content="#0a0a0f" />
+<link rel="icon" href="./assets/favicon.png" />
+<link rel="apple-touch-icon" href="./assets/apple-touch-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#08080d; --bg2:#0d0c16;
+    --fg:#f2f1f7; --muted:#a8a4ba; --faint:#6f6b85;
+    --accent:#8b5cf6; --accent2:#a78bfa; --accent3:#c4b5fd;
+    --card:rgba(255,255,255,.035); --border:rgba(255,255,255,.09);
+    --ok:#34d399; --warn:#fbbf24;
+    --radius:20px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg); color:var(--fg);
+    font-family:Inter,-apple-system,BlinkMacSystemFont,sans-serif;
+    line-height:1.6; -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  h1,h2,h3,.brand{font-family:"Space Grotesk",Inter,sans-serif;letter-spacing:-.02em;line-height:1.1}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+  .grad-text{background:linear-gradient(120deg,#fff 10%,var(--accent3) 55%,var(--accent) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+  /* ambient bg */
+  .aura{position:fixed;inset:0;z-index:-1;overflow:hidden}
+  .aura::before,.aura::after{content:"";position:absolute;border-radius:50%;filter:blur(120px);opacity:.45}
+  .aura::before{width:720px;height:720px;background:radial-gradient(circle,#7c3aed,transparent 60%);top:-300px;left:-200px}
+  .aura::after{width:640px;height:640px;background:radial-gradient(circle,#4f46e5,transparent 60%);top:480px;right:-240px}
+  .grid-overlay{position:fixed;inset:0;z-index:-1;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:48px 48px;mask-image:radial-gradient(ellipse 80% 50% at 50% 0%,#000 30%,transparent 75%)}
+
+  /* nav */
+  nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(14px);background:rgba(8,8,13,.55);border-bottom:1px solid transparent;transition:border-color .3s}
+  nav.scrolled{border-color:var(--border)}
+  .nav-in{display:flex;align-items:center;justify-content:space-between;height:68px}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:19px}
+  .logo img{width:32px;height:32px;border-radius:9px}
+  .nav-links{display:flex;align-items:center;gap:28px;font-size:14.5px;color:var(--muted)}
+  .nav-links a:hover{color:var(--fg)}
+  .nav-cta{padding:9px 16px;border:1px solid var(--border);border-radius:999px;color:var(--fg)!important;transition:.2s}
+  .nav-cta:hover{background:var(--accent);border-color:var(--accent)}
+  @media(max-width:720px){.nav-links a:not(.nav-cta){display:none}}
+
+  /* hero */
+  .hero{text-align:center;padding:72px 0 28px}
+  .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border:1px solid var(--border);background:var(--card);border-radius:999px;font-size:13px;color:var(--accent3);margin-bottom:22px}
+  .pill .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 4px rgba(52,211,153,.18)}
+  .hero h1{font-size:clamp(34px,5.5vw,58px);font-weight:700;margin-bottom:18px}
+  .hero p{font-size:clamp(16px,2.2vw,20px);color:var(--muted);max-width:620px;margin:0 auto 14px}
+  .hero .fine{font-size:14px;color:var(--faint);max-width:600px;margin:0 auto}
+
+  /* requirements row */
+  .needs{margin:44px 0 0;display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  @media(max-width:760px){.needs{grid-template-columns:1fr}}
+  .need{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px 22px;display:flex;gap:14px;align-items:flex-start}
+  .need .ic{font-size:24px;line-height:1;flex:none}
+  .need h4{font-size:15px;font-family:"Space Grotesk";margin-bottom:3px}
+  .need p{font-size:13.5px;color:var(--muted);line-height:1.5}
+
+  /* steps */
+  section{padding:60px 0}
+  .eyebrow{color:var(--accent3);font-weight:600;font-size:13px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px}
+  .sec-title{font-size:clamp(26px,4vw,40px);font-weight:700}
+  .sec-lead{color:var(--muted);font-size:17px;max-width:600px;margin-top:14px}
+  .center{text-align:center}.center .sec-lead{margin-inline:auto}
+
+  .step-row{display:grid;grid-template-columns:1fr 1fr;gap:54px;align-items:center;margin-top:64px}
+  .step-row:first-of-type{margin-top:48px}
+  .step-row.flip .step-visual{order:-1}
+  @media(max-width:840px){.step-row{grid-template-columns:1fr;gap:30px}.step-row.flip .step-visual{order:0}.step-visual{order:-1}}
+  .step-num{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:14px;font-family:"Space Grotesk";font-weight:700;font-size:22px;background:linear-gradient(135deg,var(--accent),#6d28d9);color:#fff;box-shadow:0 10px 26px rgba(124,58,237,.45);margin-bottom:20px}
+  .step-copy h3{font-size:clamp(22px,3vw,28px);margin-bottom:12px}
+  .step-copy p{color:var(--muted);font-size:16px;margin-bottom:14px}
+  .step-copy .tip{display:flex;gap:9px;align-items:flex-start;font-size:14px;color:var(--accent3);background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.22);border-radius:12px;padding:11px 14px}
+  .step-copy code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:6px;padding:2px 7px;color:var(--accent3)}
+  .step-visual{display:flex;justify-content:center}
+
+  /* macOS window (faithful Bridge reproduction) */
+  .mac{width:100%;max-width:420px;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.14);box-shadow:0 40px 90px -28px rgba(0,0,0,.85);background:#faf7fb}
+  .mac-bar{height:40px;background:linear-gradient(#f3eef6,#e9e2ee);border-bottom:1px solid #ddd4e2;display:flex;align-items:center;padding:0 14px;gap:8px}
+  .tl{width:12px;height:12px;border-radius:50%}
+  .tl.r{background:#ff5f57}.tl.y{background:#febc2e}.tl.g{background:#28c840}
+  .mac-bar .mac-t{flex:1;text-align:center;font-size:12.5px;color:#8a8392;font-weight:500;margin-right:46px}
+  /* the Bridge card body, mirroring bridge-desktop/src/mainview */
+  .bridge{background:#faf7fb;color:#1a1320;padding:30px 24px 28px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
+  .bridge .brand{display:flex;align-items:center;gap:8px}
+  .bridge .brand h1{font-size:20px;font-weight:700;color:#1a1320;letter-spacing:-.02em}
+  .bridge .paw{font-size:22px}
+  .bridge .sub{font-size:13px;color:#6b6472}
+  .bridge .qrwrap{background:#fff;border:1px solid #ece7f0;border-radius:18px;padding:16px;box-shadow:0 6px 24px rgba(124,58,237,.10)}
+  .bridge .qrwrap img{display:block;width:188px;height:188px;image-rendering:pixelated}
+  .bridge .addr{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#9a93a1}
+  .bridge .status{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#1a1320}
+  .bridge .sdot{width:9px;height:9px;border-radius:50%}
+  .bridge .sdot.ok{background:#16a34a;box-shadow:0 0 0 4px rgba(22,163,74,.16)}
+  .bridge .sdot.idle{background:#7c3aed;box-shadow:0 0 0 4px rgba(124,58,237,.14)}
+  .bridge .hint{max-width:300px;font-size:12px;line-height:1.5;color:#6b6472}
+  /* "just launched" variant — agents hosting list */
+  .bridge .hosting{width:100%;max-width:300px;display:flex;flex-direction:column;gap:8px;margin-top:2px}
+  .hrow{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #ece7f0;border-radius:12px;padding:9px 12px;text-align:left}
+  .hrow .ha{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:11px;font-weight:700;color:#fff;font-family:"Space Grotesk";flex:none}
+  .hrow .hb{flex:1;min-width:0}
+  .hrow .ht{font-size:12.5px;font-weight:600;color:#1a1320}
+  .hrow .hm{font-size:11px;color:#9a93a1}
+  .hrow .hd{width:7px;height:7px;border-radius:50%;background:#16a34a;flex:none}
+
+  /* phone frame (matches landing) */
+  .phone{position:relative;width:268px;height:550px;border-radius:42px;background:linear-gradient(160deg,#16151f,#0c0b12);border:1px solid rgba(255,255,255,.12);box-shadow:0 40px 90px -22px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.08);padding:12px;flex:none}
+  .screen{height:100%;border-radius:31px;overflow:hidden;background:#0a0910;position:relative;border:1px solid rgba(255,255,255,.05)}
+  .screen img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block}
+  .phone-glow{position:absolute;width:300px;height:300px;background:radial-gradient(circle,rgba(139,92,246,.5),transparent 65%);filter:blur(40px);z-index:-1}
+  .phone-stage{position:relative;display:flex;justify-content:center;align-items:center}
+
+  /* scan viewfinder overlay */
+  .scan{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:radial-gradient(120% 80% at 50% 40%,#1b1430,#0a0910)}
+  .scan-top{position:absolute;top:0;left:0;right:0;padding:18px 16px 0;text-align:center}
+  .scan-top .st{font-family:"Space Grotesk";font-weight:700;font-size:16px;color:#fff}
+  .scan-top .ss{font-size:11.5px;color:var(--accent3);margin-top:3px}
+  .vf{position:relative;width:188px;height:188px;border-radius:22px;background:#fff;padding:14px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+  .vf img{width:100%;height:100%;image-rendering:pixelated;display:block}
+  .vf .br{position:absolute;width:30px;height:30px;border:3px solid var(--accent2)}
+  .vf .br.tl{top:-4px;left:-4px;border-right:none;border-bottom:none;border-radius:12px 0 0 0}
+  .vf .br.tr{top:-4px;right:-4px;border-left:none;border-bottom:none;border-radius:0 12px 0 0}
+  .vf .br.bl{bottom:-4px;left:-4px;border-right:none;border-top:none;border-radius:0 0 0 12px}
+  .vf .br.brr{bottom:-4px;right:-4px;border-left:none;border-top:none;border-radius:0 0 12px 0}
+  .scan-line{position:absolute;left:14px;right:14px;height:2px;background:linear-gradient(90deg,transparent,var(--accent2),transparent);box-shadow:0 0 12px var(--accent2);animation:scanmove 2.4s ease-in-out infinite}
+  @keyframes scanmove{0%,100%{top:18px}50%{top:calc(100% - 18px)}}
+  .scan-foot{position:absolute;bottom:0;left:0;right:0;padding:0 16px 20px;text-align:center;font-size:12px;color:var(--muted)}
+  .scan-foot b{color:var(--fg);font-weight:600}
+
+  /* data-flow */
+  .flow{margin-top:48px;background:var(--card);border:1px solid var(--border);border-radius:24px;padding:38px 30px;display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap}
+  .node{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;min-width:120px}
+  .node .nic{width:64px;height:64px;border-radius:18px;display:grid;place-items:center;font-size:30px;background:linear-gradient(135deg,rgba(139,92,246,.22),rgba(139,92,246,.06));border:1px solid rgba(139,92,246,.28)}
+  .node .nt{font-family:"Space Grotesk";font-weight:600;font-size:15px}
+  .node .nm{font-size:12px;color:var(--faint);max-width:150px}
+  .flow-link{display:flex;flex-direction:column;align-items:center;color:var(--accent3);font-size:11px;gap:2px;min-width:90px}
+  .flow-link .ln{width:100%;height:2px;background:repeating-linear-gradient(90deg,var(--accent2) 0 7px,transparent 7px 13px)}
+  .flow-link .lt{white-space:nowrap}
+  @media(max-width:760px){.flow{flex-direction:column}.flow-link{flex-direction:row;gap:8px;width:auto}.flow-link .ln{width:40px;height:2px}.flow-link .ln{background:repeating-linear-gradient(90deg,var(--accent2) 0 7px,transparent 7px 13px)}}
+  .flow-note{text-align:center;margin-top:22px;color:var(--muted);font-size:15px}
+  .flow-note b{color:var(--fg);font-weight:600}
+
+  /* mini gallery */
+  .shots{margin-top:48px;display:grid;grid-template-columns:repeat(3,1fr);gap:22px;max-width:880px;margin-inline:auto}
+  .shots figure{display:flex;flex-direction:column;gap:12px;align-items:center}
+  .shots img{width:100%;border-radius:22px;border:1px solid var(--border);box-shadow:0 30px 60px -28px rgba(0,0,0,.8)}
+  .shots figcaption{font-size:14px;color:var(--muted);text-align:center}
+  .shots figcaption b{color:var(--fg);font-weight:600;font-family:"Space Grotesk"}
+  @media(max-width:760px){.shots{grid-template-columns:1fr;max-width:300px}}
+
+  /* faq */
+  .faq{margin-top:44px;display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:760px){.faq{grid-template-columns:1fr}}
+  .qa{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px 24px}
+  .qa h4{font-size:16px;font-family:"Space Grotesk";margin-bottom:8px}
+  .qa p{font-size:14.5px;color:var(--muted)}
+  .qa a{color:var(--accent3);text-decoration:underline;text-underline-offset:2px}
+
+  /* store buttons / cta */
+  .store{display:inline-flex;align-items:center;gap:11px;padding:11px 18px;border-radius:14px;background:#fff;color:#000;transition:transform .2s,box-shadow .2s;border:1px solid #fff}
+  .store:hover{transform:translateY(-3px);box-shadow:0 12px 30px rgba(0,0,0,.4)}
+  .store svg{width:24px;height:24px;flex:none}
+  .store .s-top{font-size:10.5px;line-height:1;opacity:.7;letter-spacing:.02em}
+  .store .s-big{font-size:17px;font-weight:600;line-height:1.15;font-family:"Space Grotesk",sans-serif}
+  .store.dl{background:transparent;color:var(--fg);border:1px solid var(--border)}
+  .store.dl:hover{border-color:var(--accent);background:rgba(139,92,246,.1)}
+  .store.dl .acc{color:var(--accent3)}
+  .cta-box{text-align:center;background:linear-gradient(160deg,rgba(139,92,246,.16),rgba(79,70,229,.06));border:1px solid rgba(139,92,246,.3);border-radius:30px;padding:60px 28px}
+  .cta-box h2{font-size:clamp(26px,4vw,40px);margin-bottom:14px}
+  .cta-box p{color:var(--muted);margin-bottom:28px;font-size:17px;max-width:520px;margin-inline:auto}
+  .cta-row{display:flex;flex-wrap:wrap;gap:14px;justify-content:center}
+
+  footer{border-top:1px solid var(--border);padding:40px 0;color:var(--faint);font-size:14px}
+  .foot-in{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+  .foot-links{display:flex;gap:22px}
+  .foot-links a:hover{color:var(--fg)}
+
+  .reveal{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.8,.2,1)}
+  .reveal.in{opacity:1;transform:none}
+</style>
+</head>
+<body>
+<div class="aura"></div>
+<div class="grid-overlay"></div>
+
+<nav id="nav">
+  <div class="wrap nav-in">
+    <a class="logo" href="./index.html"><img src="./assets/icon.png" alt="Pounce" /> Pounce</a>
+    <div class="nav-links">
+      <a href="./index.html">Home</a>
+      <a href="./index.html#features">Features</a>
+      <a href="https://github.com/peppyhop/pounce" target="_blank" rel="noopener">GitHub</a>
+      <a class="nav-cta" href="https://github.com/peppyhop/pounce/releases/latest" target="_blank" rel="noopener">Get the Bridge</a>
+    </div>
+  </div>
+</nav>
+
+<header class="wrap hero">
+  <span class="pill"><span class="dot"></span> Set up in about 2 minutes</span>
+  <h1>How Pounce <span class="grad-text">connects to your computer</span></h1>
+  <p>Pounce doesn't run your agents in the cloud — it's a remote control for the coding agents <b>already running on your own machine</b>. You install a tiny free <b>Bridge</b> app on your computer, scan one QR code with your phone, and you're paired.</p>
+  <p class="fine">No account. No Pounce server in the middle. Your code and conversations stay on your devices.</p>
+
+  <div class="needs">
+    <div class="need"><span class="ic">🖥️</span><div><h4>A computer</h4><p>Your Mac (or any machine) running coding agents like Claude, Codex, or opencode — with the free Pounce Bridge installed.</p></div></div>
+    <div class="need"><span class="ic">📱</span><div><h4>The Pounce app</h4><p>On your iPhone or Android. It's the remote — it shows every agent and lets you steer them.</p></div></div>
+    <div class="need"><span class="ic">📶</span><div><h4>A network path</h4><p>Same Wi-Fi is easiest. Remote? Point the Bridge through a tunnel (Tailscale, ngrok) and pair the same way.</p></div></div>
+  </div>
+</header>
+
+<section style="padding-top:24px">
+  <div class="wrap">
+
+    <!-- STEP 1 -->
+    <div class="step-row reveal">
+      <div class="step-copy">
+        <div class="step-num">1</div>
+        <h3>Run the Bridge on your computer</h3>
+        <p>Download the free, notarized <b>Pounce Bridge</b> for Mac and open it. It lives in your menu bar and automatically hosts the coding agents running on that machine — no terminal, no config files.</p>
+        <div class="tip">💡&nbsp; The Bridge is what your phone talks to. Keep it running while you want remote access — quit it any time to go fully offline.</div>
+      </div>
+      <div class="step-visual">
+        <div class="mac">
+          <div class="mac-bar"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="mac-t">Pounce</span></div>
+          <div class="bridge">
+            <div class="brand"><span class="paw">🐾</span><h1>Pounce</h1></div>
+            <p class="sub">Hosting the agents on this Mac</p>
+            <div class="status"><span class="sdot ok"></span><span>Running · 3 agents online</span></div>
+            <div class="hosting">
+              <div class="hrow"><span class="ha" style="background:#d97706">C</span><span class="hb"><span class="ht">Claude</span><span class="hm">claude-code · ready</span></span><span class="hd"></span></div>
+              <div class="hrow"><span class="ha" style="background:#10a37f">Cx</span><span class="hb"><span class="ht">Codex</span><span class="hm">codex · ready</span></span><span class="hd"></span></div>
+              <div class="hrow"><span class="ha" style="background:#7c3aed">Oc</span><span class="hb"><span class="ht">opencode</span><span class="hm">opencode · ready</span></span><span class="hd"></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step-row flip reveal">
+      <div class="step-copy">
+        <div class="step-num">2</div>
+        <h3>A pairing code appears</h3>
+        <p>The Bridge shows a QR code and the address it's listening on. This is the handshake — it carries the machine's address and a private, per-machine token so only your phone can connect.</p>
+        <div class="tip">🔒&nbsp; The token never leaves your network. Pairing once is enough; Pounce remembers the machine so you can reach it again later.</div>
+      </div>
+      <div class="step-visual">
+        <div class="mac">
+          <div class="mac-bar"><span class="tl r"></span><span class="tl y"></span><span class="tl g"></span><span class="mac-t">Pounce</span></div>
+          <div class="bridge">
+            <div class="brand"><span class="paw">🐾</span><h1>Pounce</h1></div>
+            <p class="sub">Scan with your iPhone to connect</p>
+            <div class="qrwrap"><img src="./assets/pair-qr.svg" alt="Pounce pairing QR code" /></div>
+            <div class="addr">http://192.168.1.6:8099</div>
+            <div class="status"><span class="sdot idle"></span><span>Waiting for your phone…</span></div>
+            <p class="hint">Open Pounce on your phone → Sync → Scan this code.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step-row reveal">
+      <div class="step-copy">
+        <div class="step-num">3</div>
+        <h3>Scan it with Pounce</h3>
+        <p>Open Pounce on your phone, tap <b>Sync a device</b>, and point the camera at the code. That's the entire setup — no typing addresses, no copying tokens.</p>
+        <div class="tip">📷&nbsp; You can also scan with the built-in iPhone Camera app — it opens Pounce straight to the pairing screen.</div>
+      </div>
+      <div class="step-visual phone-stage">
+        <div class="phone-glow"></div>
+        <div class="phone">
+          <div class="screen">
+            <div class="scan">
+              <div class="scan-top"><div class="st">Sync a device</div><div class="ss">Point at the code in the Bridge window</div></div>
+              <div class="vf">
+                <span class="br tl"></span><span class="br tr"></span><span class="br bl"></span><span class="br brr"></span>
+                <span class="scan-line"></span>
+                <img src="./assets/pair-qr.svg" alt="Scanning the pairing QR" />
+              </div>
+              <div class="scan-foot">Pairing with <b>192.168.1.6</b>…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="step-row flip reveal">
+      <div class="step-copy">
+        <div class="step-num">4</div>
+        <h3>You're connected</h3>
+        <p>Your machine's sessions sync instantly. Every coding agent, across every computer you've paired, shows up in one list — with the ones that <b>need your input first</b>.</p>
+        <div class="tip">🐾&nbsp; Pair more machines the same way. They all live in the same fleet — filter by device or agent and jump between them.</div>
+      </div>
+      <div class="step-visual phone-stage">
+        <div class="phone-glow"></div>
+        <div class="phone">
+          <div class="screen"><img src="./assets/screen-home.png" alt="Pounce home — every coding agent across all your machines, on one screen" /></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- now you can -->
+<section>
+  <div class="wrap">
+    <div class="reveal center">
+      <div class="eyebrow">Once you're paired</div>
+      <h2 class="sec-title">Run the whole loop from your phone</h2>
+      <p class="sec-lead">Watch agents work live, jump in by voice, review the diff, and ship — without going back to your desk.</p>
+    </div>
+    <div class="shots">
+      <figure class="reveal"><img src="./assets/shot-session.png" alt="Live agent session streaming in real time" /><figcaption><b>Watch it work.</b> Reasoning, tools &amp; terminal, live.</figcaption></figure>
+      <figure class="reveal"><img src="./assets/shot-voice.png" alt="Hold to talk to steer an agent by voice" /><figcaption><b>Hold to talk.</b> Steer any agent hands-free.</figcaption></figure>
+      <figure class="reveal"><img src="./assets/shot-changes.png" alt="Review the diff and open a PR from your phone" /><figcaption><b>Review &amp; ship.</b> Commit, push, open a PR.</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<!-- data flow -->
+<section>
+  <div class="wrap">
+    <div class="reveal center">
+      <div class="eyebrow">Where your data goes</div>
+      <h2 class="sec-title">A direct line to your own machine</h2>
+      <p class="sec-lead">Nothing is routed through a Pounce server. The app talks straight to the Bridge on your computer, which talks to the agents running there.</p>
+    </div>
+    <div class="flow reveal">
+      <div class="node"><div class="nic">📱</div><div class="nt">Pounce app</div><div class="nm">Your phone — the remote</div></div>
+      <div class="flow-link"><span class="lt">your network</span><span class="ln"></span><span class="lt">private token</span></div>
+      <div class="node"><div class="nic">🐾</div><div class="nt">The Bridge</div><div class="nm">Runs on your computer</div></div>
+      <div class="flow-link"><span class="lt">localhost</span><span class="ln"></span><span class="lt">on-device</span></div>
+      <div class="node"><div class="nic">🤖</div><div class="nt">Your agents</div><div class="nm">Claude · Codex · opencode</div></div>
+    </div>
+    <p class="flow-note"><b>No Pounce cloud.</b> Your code, diffs and conversations never pass through us — read the <a href="./privacy.html" style="color:var(--accent3);text-decoration:underline">privacy policy</a>.</p>
+  </div>
+</section>
+
+<!-- faq -->
+<section>
+  <div class="wrap">
+    <div class="reveal center">
+      <div class="eyebrow">Good to know</div>
+      <h2 class="sec-title">Common questions</h2>
+    </div>
+    <div class="faq">
+      <div class="qa reveal"><h4>Don't have the phone app yet?</h4><p>iOS &amp; Android are in private beta — public launch is coming soon. Grab the free <a href="https://github.com/peppyhop/pounce/releases/latest" target="_blank" rel="noopener">Mac Bridge</a> now so you're ready on day one.</p></div>
+      <div class="qa reveal"><h4>Phone and computer on different networks?</h4><p>Expose the Bridge through a tunnel — Tailscale, ngrok, or a Cloudflare tunnel — and scan the same QR. Pounce connects to whatever address the Bridge advertises.</p></div>
+      <div class="qa reveal"><h4>Is the connection secure?</h4><p>Each machine pairs with its own private token, and the production path uses a direct peer-to-peer identity to reach home. There's no shared cloud inbox for your sessions.</p></div>
+      <div class="qa reveal"><h4>What can it actually do?</h4><p>Stream every agent live, reply or redirect by voice, approve permission prompts, and review diffs — then commit, push, or open a PR, all from the phone.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- cta -->
+<section>
+  <div class="wrap">
+    <div class="cta-box reveal">
+      <h2>Ready to set it up?</h2>
+      <p>Install the free, notarized Mac Bridge, then scan once. You'll be steering your agents from your pocket in about two minutes.</p>
+      <div class="cta-row">
+        <a class="store dl" href="https://github.com/peppyhop/pounce/releases/latest" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 16l-5-5 1.4-1.4L11 12.2V3h2v9.2l2.6-2.6L17 11l-5 5zM5 19h14v2H5z"/></svg>
+          <span><span class="s-top acc">Available now</span><br><span class="s-big">Bridge for Mac</span></span>
+        </a>
+        <a class="store" href="./index.html">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 17l5-5-5-5v10z"/></svg>
+          <span><span class="s-top">Back to</span><br><span class="s-big">Pounce home</span></span>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-in">
+    <a class="logo" href="./index.html" style="font-size:17px"><img src="./assets/favicon.png" alt="" style="width:26px;height:26px;border-radius:7px"/> Pounce</a>
+    <div class="foot-links">
+      <a href="./index.html">Home</a>
+      <a href="https://github.com/peppyhop/pounce" target="_blank" rel="noopener">GitHub</a>
+      <a href="./privacy.html">Privacy</a>
+    </div>
+    <div>© 2026 Peppyhop · Pounce</div>
+  </div>
+</footer>
+
+<script>
+  const nav=document.getElementById('nav');
+  addEventListener('scroll',()=>nav.classList.toggle('scrolled',scrollY>10));
+  const io=new IntersectionObserver((es)=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.12});
+  document.querySelectorAll('.reveal').forEach((el)=>io.observe(el));
+</script>
+</body>
+</html>
