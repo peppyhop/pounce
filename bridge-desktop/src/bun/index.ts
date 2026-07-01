@@ -4,6 +4,9 @@ import { BrowserWindow, Tray, Updater } from "electrobun/bun";
 // @ts-expect-error — plain .mjs, no types
 import { startBridge, kittylitterPath, refreshKittylitter } from "../../server/server.mjs";
 import { ensureDaemon } from "./daemon";
+// The app version, shown in the pairing window's footer (kept in sync with the
+// release tag via package.json / electrobun.config.ts).
+import pkg from "../../package.json";
 
 const PORT = Number(process.env.BRIDGE_PORT || 8099);
 
@@ -16,7 +19,7 @@ void ensureDaemon(kittylitterPath() as string)
   .then((msg) => { (refreshKittylitter as () => void)(); console.log(`[daemon] ${msg}`); })
   .catch((e) => console.error("[daemon] bootstrap failed:", e));
 
-const info = await startBridge({ port: PORT, quiet: true });
+const info = await startBridge({ port: PORT, quiet: true, appVersion: (pkg as { version?: string }).version });
 if (info?.error && !info.alreadyRunning) {
   console.error("Pounce could not start:", info.error);
 } else if (info?.alreadyRunning) {
