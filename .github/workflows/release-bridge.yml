@@ -13,6 +13,12 @@ permissions:
 jobs:
   build:
     runs-on: macos-14
+    # `secrets` is not available in step-level `if:` — referencing it there makes
+    # GitHub reject the whole workflow at parse time (startup_failure on every
+    # run). Hoist the "is signing configured?" check into a job-level env var and
+    # gate the signing steps on that instead.
+    env:
+      HAS_SIGNING_CERT: ${{ secrets.MAC_CERT_P12_BASE64 != '' }}
     defaults:
       run:
         working-directory: bridge-desktop
@@ -31,7 +37,7 @@ jobs:
         run: bun install
 
       - name: Import signing certificate
-        if: ${{ secrets.MAC_CERT_P12_BASE64 != '' }}
+        if: ${{ env.HAS_SIGNING_CERT == 'true' }}
         env:
           CERT_P12: ${{ secrets.MAC_CERT_P12_BASE64 }}
           CERT_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
