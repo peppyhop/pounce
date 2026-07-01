@@ -6,6 +6,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useSelector } from "@legendapp/state/react";
 import type { TimelineEvent } from "@litter/shared";
 import { Timeline } from "@/components/Timeline";
+import { TimelineSkeleton } from "@/components/Skeleton";
 import { Composer, type ComposerSubmit } from "@/components/Composer";
 import { useTimeline } from "@/hooks/useTimeline";
 import { capsFor, connection$, pendingTurns$, sessions$ } from "@/state/stores";
@@ -186,11 +187,9 @@ export default function SessionScreen() {
 
       <View className="flex-1">
         {loading && events.length === 0 ? (
-          <View className="flex-1 items-center justify-center">
-            <Text className="text-fg-faint">Loading history…</Text>
-          </View>
+          <TimelineSkeleton />
         ) : (
-          <Timeline events={events} />
+          <Timeline events={events} agent={session.agent} />
         )}
       </View>
 

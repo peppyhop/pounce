@@ -24,6 +24,12 @@ jobs:
 
       - run: bun install
 
+      # Workspace deps at the repo root so `sync-server` can bundle the bridge's
+      # workspace imports (e.g. @litter/transcript) into a self-contained server.mjs.
+      - name: Install workspace deps
+        working-directory: ${{ github.workspace }}
+        run: bun install
+
       - name: Import signing certificate
         if: ${{ secrets.MAC_CERT_P12_BASE64 != '' }}
         env:
@@ -49,7 +55,7 @@ jobs:
           if [ -n "${{ secrets.ELECTROBUN_APPLEAPIKEY_P8 }}" ]; then
             echo "${{ secrets.ELECTROBUN_APPLEAPIKEY_P8 }}" | base64 --decode > /tmp/asc_key.p8
           fi
-          mkdir -p server && cp ../apps/bridge/server.mjs server/server.mjs
+          bun run sync-server
           ./node_modules/.bin/electrobun build --env=stable
 
       - name: Attach installer + auto-update artifacts to the Release
