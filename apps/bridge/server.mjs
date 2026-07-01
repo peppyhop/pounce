@@ -28,9 +28,15 @@ const PORT = Number(process.env.BRIDGE_PORT || 8099);
 // How often the background watcher polls for state transitions to push.
 const WATCH_MS = Number(process.env.PUSH_WATCH_MS || 25_000);
 const TOKEN = process.env.BRIDGE_TOKEN || "pounce-bridge-local";
-// Locate the kittylitter CLI robustly: env override → any npx cache that still
-// has the binary (the hash rotates when the cache is cleared/re-fetched) → PATH.
-function findKittylitter() {
+// Kittylitter invocation resolver. A GUI-launched app inherits a minimal PATH
+// and the npx cache hash rotates whenever the cache is cleared/re-fetched, so we
+// must NOT freeze a path at import. (That was the bug: resolve once → the daemon
+// later starts via npx → the bridge keeps spawning a now-absent binary → every
+// probe/status ENOENTs → "Starting your agent host…" forever, zero threads.)
+// Instead: resolve lazily, allow re-resolution, and fall back to
+// `npx -y kittylitter@latest`, which always works when node is present and drives
+// the same cache the daemon was installed into.
+function findKlBinary() {
   if (process.env.KITTYLITTER) return process.env.KITTYLITTER;
   const npxRoot = `${os.homedir()}/.npm/_npx`;
   try {
@@ -39,13 +45,53 @@ function findKittylitter() {
       if (existsSync(p)) return p;
     }
   } catch {}
-  return "kittylitter";
+  return null;
 }
-const KITTYLITTER = findKittylitter();
 
-/** The resolved kittylitter binary path (or bare "kittylitter"). */
+// GUI apps launched from Finder/Dock get a bare PATH (no Homebrew, no node
+// version-manager shims), so `npx`/`node` and the binary's `env node` shebang can
+// fail to resolve. Prepend the usual install locations for every kittylitter call.
+function augmentedPath() {
+  const home = os.homedir();
+  const extra = [
+    "/opt/homebrew/bin", "/usr/local/bin", `${home}/.local/bin`,
+    `${home}/.volta/bin`, `${home}/.bun/bin`,
+    `${home}/.nvm/current/bin`, `${home}/.fnm/aliases/default/bin`,
+  ];
+  return [...extra, process.env.PATH || ""].filter(Boolean).join(":");
+}
+const KL_ENV = { ...process.env, PATH: augmentedPath() };
+
+let _kl = null; // cached { cmd, prefix }
+/** How to invoke kittylitter: the cached binary if present, else via npx. */
+function klInvocation() {
+  if (_kl) return _kl;
+  const bin = findKlBinary();
+  _kl = bin ? { cmd: bin, prefix: [] } : { cmd: "npx", prefix: ["-y", "kittylitter@latest"] };
+  return _kl;
+}
+/** Forget the cached invocation so the next call re-scans the npx cache. Call
+ *  this once the daemon is (re)installed so a fresh binary path is picked up
+ *  instead of the slower npx path. */
+export function refreshKittylitter() { _kl = null; return klInvocation(); }
+
+/** Spawn kittylitter with the resolved invocation and an augmented PATH. */
+function klSpawn(args, opts = {}) {
+  const inv = klInvocation();
+  return spawn(inv.cmd, [...inv.prefix, ...args], { env: KL_ENV, ...opts });
+}
+
+/** A human-readable form of the current invocation, e.g. for logs. */
+function klDisplay() {
+  const inv = klInvocation();
+  return [inv.cmd, ...inv.prefix].join(" ");
+}
+
+/** The binary path for the daemon bootstrap (ensureDaemon), or the bare package
+ *  name so its own npx logic takes over. Never returns "npx" — that path is the
+ *  bridge's concern, not the bootstrap's. Re-resolves on each call. */
 export function kittylitterPath() {
-  return KITTYLITTER;
+  return findKlBinary() || "kittylitter";
 }
 
 const CACHE_MS = 20_000;
@@ -78,9 +124,9 @@ function extractJsonObjects(text) {
   return out;
 }
 
-function probe(args, { timeout = 30000 } = {}) {
+function probe(args, { timeout = 30000 } = {}, _retried = false) {
   return new Promise((resolve) => {
-    const p = spawn(KITTYLITTER, ["probe", ...args], { stdio: ["ignore", "pipe", "pipe"] });
+    const p = klSpawn(["probe", ...args], { stdio: ["ignore", "pipe", "pipe"] });
     let out = "";
     p.stdout.on("data", (d) => (out += d));
     p.stderr.on("data", (d) => (out += d));
@@ -89,7 +135,13 @@ function probe(args, { timeout = 30000 } = {}) {
       clearTimeout(t);
       resolve(extractJsonObjects(out));
     });
-    p.on("error", () => { clearTimeout(t); resolve([]); });
+    p.on("error", (e) => {
+      clearTimeout(t);
+      // Binary path went stale (npx cache rotated / not yet installed) —
+      // re-resolve once and retry, which falls back to npx if needed.
+      if (!_retried && e?.code === "ENOENT") resolve(probe(args, { timeout }, !!refreshKittylitter()));
+      else resolve([]);
+    });
   });
 }
 
@@ -131,9 +183,9 @@ function gitList(cwd, args) {
 }
 
 /** Run a command, capturing exit code + stdout + stderr. Optional kill timeout. */
-function exec(cmd, args, cwd, timeoutMs = 0) {
+function exec(cmd, args, cwd, timeoutMs = 0, env = undefined) {
   return new Promise((resolve) => {
-    const p = spawn(cmd, args, { cwd, stdio: ["ignore", "pipe", "pipe"] });
+    const p = spawn(cmd, args, { cwd, env, stdio: ["ignore", "pipe", "pipe"] });
     let out = "", err = "", killed = false;
     const timer = timeoutMs ? setTimeout(() => { killed = true; p.kill("SIGKILL"); }, timeoutMs) : null;
     p.stdout.on("data", (d) => (out += d));
@@ -323,25 +375,30 @@ function enrichThreadActivity(threads) {
 }
 
 function status() {
-  return cached("status", CACHE_MS, () =>
-    new Promise((resolve) => {
-      const p = spawn(KITTYLITTER, ["status"], { stdio: ["ignore", "pipe", "ignore"] });
-      let out = "";
-      p.stdout.on("data", (d) => (out += d));
-      p.on("close", () => {
-        const get = (k) => (out.match(new RegExp(`${k}:\\s*(.+)`)) || [])[1]?.trim() || null;
-        resolve({
-          pid: get("pid"),
-          version: get("version"),
-          nodeId: get("node id"),
-          relay: get("relay"),
-          uptimeSecs: Number(get("uptime \\(s\\)")) || null,
-          device: os.hostname().replace(/\.local$/, ""),
-        });
+  return cached("status", CACHE_MS, () => runStatus(false));
+}
+function runStatus(_retried) {
+  return new Promise((resolve) => {
+    const p = klSpawn(["status"], { stdio: ["ignore", "pipe", "ignore"] });
+    let out = "";
+    p.stdout.on("data", (d) => (out += d));
+    p.on("close", () => {
+      const get = (k) => (out.match(new RegExp(`${k}:\\s*(.+)`)) || [])[1]?.trim() || null;
+      resolve({
+        pid: get("pid"),
+        version: get("version"),
+        nodeId: get("node id"),
+        relay: get("relay"),
+        uptimeSecs: Number(get("uptime \\(s\\)")) || null,
+        device: os.hostname().replace(/\.local$/, ""),
       });
-      p.on("error", () => resolve(null));
-    }),
-  );
+    });
+    p.on("error", (e) => {
+      // Stale/absent binary — re-resolve once (falls back to npx) and retry.
+      if (!_retried && e?.code === "ENOENT") { refreshKittylitter(); resolve(runStatus(true)); }
+      else resolve(null);
+    });
+  });
 }
 
 function textOf(it) {
@@ -454,8 +511,7 @@ function makeObjectStream() {
  */
 function interruptTurn(agent, threadId) {
   return new Promise((resolve) => {
-    const p = spawn(
-      KITTYLITTER,
+    const p = klSpawn(
       ["probe", "--agent", agent, "--method", "turn/interrupt",
        "--params", JSON.stringify({ threadId }), "--timeout-secs", "10", "--linger-secs", "1"],
       { stdio: ["ignore", "ignore", "ignore"] },
@@ -493,7 +549,7 @@ function streamTurn(agent, threadId, text, cwd, onEvent, onDone, opts = {}) {
     : ["probe", "--agent", agent,
        "--before-method", "thread/resume", "--before-params", JSON.stringify({ threadId }),
        "--method", "turn/start", "--params", JSON.stringify({ threadId, input, ...extra })];
-  const p = spawn(KITTYLITTER, [...args, "--until-method", "turn/completed", "--linger-secs", "240", "--timeout-secs", "300"],
+  const p = klSpawn([...args, "--until-method", "turn/completed", "--linger-secs", "240", "--timeout-secs", "300"],
     { stdio: ["ignore", "pipe", "pipe"] });
 
   const feed = makeObjectStream();
@@ -822,7 +878,8 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/v1/pair") {
       // The daemon's PairPayload (nodeId/relay/token) — lets the app sync
       // directly (off-LAN) instead of through this bridge.
-      const r = await exec(KITTYLITTER, ["pair"], undefined, 15_000);
+      const inv = klInvocation();
+      const r = await exec(inv.cmd, [...inv.prefix, "pair"], undefined, 15_000, KL_ENV);
       const line = (r.out || "").split("\n").find((l) => l.trim().startsWith("{"));
       try {
         const raw = line ? JSON.parse(line) : null;
@@ -945,7 +1002,7 @@ export function startBridge({ port = PORT, quiet = false } = {}) {
       if (!quiet) {
         console.log(`Pounce Bridge listening on ${pairUrl}`);
         console.log(`  token: ${TOKEN}`);
-        console.log(`  kittylitter: ${KITTYLITTER}`);
+        console.log(`  kittylitter: ${klDisplay()}`);
         console.log("\n  📲 Scan with your iPhone Camera to pair Pounce:\n");
         qrcode.generate(deepLink, { small: true });
         console.log(`\n  …or open this link on the device:\n  ${deepLink}\n`);
@@ -958,7 +1015,7 @@ export function startBridge({ port = PORT, quiet = false } = {}) {
       setInterval(() => { if (Date.now() - lastClientSeen < 90_000) warm(); }, 15_000);
 
       setTimeout(watchTick, WATCH_MS);
-      resolve({ server, token: TOKEN, kittylitter: KITTYLITTER, ...PAIR });
+      resolve({ server, token: TOKEN, kittylitter: klDisplay(), ...PAIR });
     });
   });
 }
