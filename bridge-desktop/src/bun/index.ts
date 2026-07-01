@@ -2,15 +2,18 @@ import { BrowserWindow, Tray, Updater } from "electrobun/bun";
 // The bridge lives in the repo; the desktop app just runs it in-process and
 // renders the pairing QR. quiet:true suppresses the CLI console output.
 // @ts-expect-error — plain .mjs, no types
-import { startBridge, kittylitterPath } from "../../server/server.mjs";
+import { startBridge, kittylitterPath, refreshKittylitter } from "../../server/server.mjs";
 import { ensureDaemon } from "./daemon";
 
 const PORT = Number(process.env.BRIDGE_PORT || 8099);
 
 // Bootstrap the agent host in the background so the user needs nothing else.
 // The window shows "Starting your agent host…" until the daemon answers.
+// `ensureDaemon` may install the daemon via npx (populating the npx cache), so
+// once it finishes we re-resolve the bridge's kittylitter invocation to pick up
+// the freshly-installed binary instead of the slower npx fallback.
 void ensureDaemon(kittylitterPath() as string)
-  .then((msg) => console.log(`[daemon] ${msg}`))
+  .then((msg) => { (refreshKittylitter as () => void)(); console.log(`[daemon] ${msg}`); })
   .catch((e) => console.error("[daemon] bootstrap failed:", e));
 
 const info = await startBridge({ port: PORT, quiet: true });
