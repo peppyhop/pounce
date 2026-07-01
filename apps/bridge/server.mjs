@@ -23,6 +23,7 @@ import os from "node:os";
 import path from "node:path";
 import qrcode from "qrcode-terminal";
 import QRCode from "qrcode";
+import { stripNoise } from "@litter/transcript";
 
 const PORT = Number(process.env.BRIDGE_PORT || 8099);
 // How often the background watcher polls for state transitions to push.
@@ -417,12 +418,15 @@ function textOf(it) {
  * live streaming (item/started|updated|completed notifications). `streaming`
  * marks an in-flight agentMessage so the app renders it with a caret in place.
  */
-function itemToEvents(it, conversationId, seq, ts, streaming = false) {
+function itemToEvents(it, conversationId, seq, ts, streaming = false, agent) {
   const id = it.id || `${conversationId}:${seq}`;
   const base = { id, conversationId, seq, ts };
   switch (it.type) {
     case "userMessage":
-      return [{ ...base, type: "user_message", text: textOf(it) }];
+      // Strip zero-value plumbing (system reminders, Codex's injected AGENTS.md,
+      // caveats) server-side so every client gets clean text. Presentation tags
+      // (slash-commands, captured output) are preserved for the app to render.
+      return [{ ...base, type: "user_message", text: stripNoise(textOf(it), agent) }];
     case "reasoning": {
       const t = textOf(it);
       return t.trim() ? [{ ...base, type: "thinking_finished", text: t, durationMs: 0 }] : [];
@@ -450,12 +454,12 @@ function itemToEvents(it, conversationId, seq, ts, streaming = false) {
 }
 
 /** Map daemon turns/items -> the app's timeline event shape (history). */
-function normalizeTurns(turns, conversationId) {
+function normalizeTurns(turns, conversationId, agent) {
   const events = [];
   let seq = 0;
   for (const turn of turns) {
     const ts = new Date(turn.completedAt || turn.createdAt || Date.now()).toISOString();
-    for (const it of turn.items || []) events.push(...itemToEvents(it, conversationId, ++seq, ts));
+    for (const it of turn.items || []) events.push(...itemToEvents(it, conversationId, ++seq, ts, false, agent));
   }
   return events;
 }
@@ -583,7 +587,7 @@ function streamTurn(agent, threadId, text, cwd, onEvent, onDone, opts = {}) {
     if (m === "item/started" || m === "item/completed") {
       const item = p.item || p;
       const streaming = m !== "item/completed";
-      for (const ev of itemToEvents(item, threadId, ++seq, now(), streaming)) onEvent(ev);
+      for (const ev of itemToEvents(item, threadId, ++seq, now(), streaming, agent)) onEvent(ev);
       if (m === "item/completed") acc.delete(item.id);
       return;
     }
@@ -611,7 +615,7 @@ async function fetchTurns(agent, threadId) {
 }
 
 async function getMessages(agent, threadId) {
-  return normalizeTurns(await fetchTurns(agent, threadId), threadId);
+  return normalizeTurns(await fetchTurns(agent, threadId), threadId, agent);
 }
 
 function tsToIso(n) {

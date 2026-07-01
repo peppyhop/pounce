@@ -44,3 +44,39 @@ export function SessionListSkeleton({ count = 5 }: { count?: number }) {
     </View>
   );
 }
+
+/** One chat-bubble bone, sized/aligned like a real Timeline message. */
+function BubbleTemplate({ user, lines }: { user: boolean; lines: 1 | 2 | 3 }) {
+  const width = user ? "62%" : "80%";
+  return (
+    <View style={{ alignItems: user ? "flex-end" : "flex-start" }}>
+      <View
+        style={{ maxWidth: "86%", width, borderRadius: 16, padding: 10, gap: 6, backgroundColor: "#777" }}
+      >
+        <Text className="text-[15px] leading-[21px] text-fg">a</Text>
+        {lines >= 2 ? <Text className="text-[15px] leading-[21px] text-fg">a</Text> : null}
+        {lines >= 3 ? <Text className="text-[15px] leading-[21px] text-fg">a</Text> : null}
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Chat-shaped bones for the initial history load — alternating bubbles that
+ * mirror the Timeline layout, so the skeleton dissolves into real messages.
+ */
+export function TimelineSkeleton() {
+  return (
+    <Skeleton loading dark darkColor="rgba(255,255,255,0.11)" animate="shimmer">
+      <View className="flex-1 gap-3 px-3 pt-3" pointerEvents="none">
+        <BubbleTemplate user={false} lines={2} />
+        <BubbleTemplate user lines={1} />
+        <BubbleTemplate user={false} lines={3} />
+        <BubbleTemplate user={false} lines={1} />
+        <BubbleTemplate user lines={2} />
+        <BubbleTemplate user={false} lines={2} />
+        <BubbleTemplate user lines={1} />
+      </View>
+    </Skeleton>
+  );
+}

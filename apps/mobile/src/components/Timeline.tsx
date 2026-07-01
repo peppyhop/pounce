@@ -3,36 +3,48 @@ import { Text, View } from "react-native";
 import { LegendList } from "@legendapp/list/react-native";
 import { assertNeverEvent, type TimelineEvent } from "@litter/shared";
 import { cn } from "@/ui";
+import {
+  cleanAssistantText,
+  isEmptyUserMessage,
+  parseUserMessage,
+} from "@litter/transcript";
 
 /** One virtualized timeline for a session — every event type, recycled rows. */
 export const Timeline = memo(function Timeline({
   events,
+  agent,
   footer,
 }: {
   events: TimelineEvent[];
+  /** Which agent produced these events — selects the body-cleaning rules. */
+  agent?: string;
   footer?: React.ReactElement;
 }) {
   return (
     <LegendList
       data={events}
       keyExtractor={(e) => e.id}
-      renderItem={({ item }) => <Row event={item} />}
+      renderItem={({ item }) => <Row event={item} agent={agent} />}
       estimatedItemSize={72}
       recycleItems
       maintainVisibleContentPosition
       alignItemsAtEnd
+      // Open on the newest message (bottom), not the top of the history, and
+      // stay pinned to the end as live turns stream in.
+      initialScrollAtEnd
+      maintainScrollAtEnd
       ListFooterComponent={footer}
       contentContainerStyle={{ padding: 12, gap: 8 }}
     />
   );
 });
 
-const Row = memo(function Row({ event }: { event: TimelineEvent }) {
+const Row = memo(function Row({ event, agent }: { event: TimelineEvent; agent?: string }) {
   switch (event.type) {
     case "user_message":
-      return <Bubble role="user" text={event.text} />;
+      return <UserRow text={event.text} agent={agent} />;
     case "assistant_message":
-      return <Bubble role="assistant" text={event.text} streaming={event.streaming} />;
+      return <Bubble role="assistant" text={cleanAssistantText(event.text, agent)} streaming={event.streaming} />;
     case "thinking_started":
       return <Meta text="Thinking…" />;
     case "thinking_finished":
@@ -57,6 +69,61 @@ const Row = memo(function Row({ event }: { event: TimelineEvent }) {
       return assertNeverEvent(event);
   }
 });
+
+/**
+ * A user turn — but the raw text may be a slash-command envelope, captured
+ * command output, or pure transcript noise rather than typed prose. Normalize
+ * first, then render whichever pieces survive (command chip, output note, and/or
+ * a prose bubble). Empty envelopes (lone caveats/reminders) render nothing.
+ */
+function UserRow({ text, agent }: { text: string; agent?: string }) {
+  const p = parseUserMessage(text, agent);
+  if (isEmptyUserMessage(p)) return null;
+  return (
+    <View className="gap-1.5">
+      {p.command ? <CommandChip name={p.command.name} args={p.command.args} /> : null}
+      {p.output ? <OutputNote text={p.output.text} isError={p.output.isError} /> : null}
+      {p.text ? <Bubble role="user" text={p.text} /> : null}
+    </View>
+  );
+}
+
+/** A slash command the user ran, as a compact right-aligned pill. */
+function CommandChip({ name, args }: { name: string; args?: string }) {
+  return (
+    <View className="flex-row justify-end">
+      <View className="max-w-[86%] flex-row items-center gap-1.5 rounded-full border border-accent/40 bg-accent/15 px-3 py-1.5">
+        <Text className="font-mono text-[13px] font-semibold text-accent">{name}</Text>
+        {args ? (
+          <Text numberOfLines={1} className="font-mono text-[12px] text-fg-muted">
+            {args}
+          </Text>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+/** Captured stdout/stderr from a local command, collapsed to a subtle note. */
+function OutputNote({ text, isError }: { text: string; isError: boolean }) {
+  return (
+    <View className="flex-row justify-end">
+      <View
+        className={cn(
+          "max-w-[86%] rounded-xl border px-3 py-1.5",
+          isError ? "border-danger/40 bg-danger/10" : "border-border bg-surface-alt",
+        )}
+      >
+        <Text
+          numberOfLines={6}
+          className={cn("font-mono text-[12px]", isError ? "text-danger" : "text-fg-muted")}
+        >
+          {text}
+        </Text>
+      </View>
+    </View>
+  );
+}
 
 function Bubble({
   role,
