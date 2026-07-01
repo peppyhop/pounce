@@ -64,9 +64,20 @@ jobs:
           bun run sync-server
           ./node_modules/.bin/electrobun build --env=stable
 
+      # Publish as `v{app-version}` (e.g. v1.0.6) to match releases cut locally by
+      # scripts/release-bridge.sh — not the `bridge-v*` trigger tag. Both work for
+      # auto-update ("latest non-prerelease"), but this keeps the Releases page
+      # consistent regardless of which path built it.
+      - name: Resolve app version
+        id: ver
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
       - name: Attach installer + auto-update artifacts to the Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ steps.ver.outputs.version }}
+          name: Pounce v${{ steps.ver.outputs.version }}
+          body: "Signed + notarized macOS build (Apple Silicon). Download Pounce.dmg, open it, drag Pounce to Applications, launch, and scan the QR with the Pounce app. Installs from v1.0.2+ update automatically."
           files: |
             bridge-desktop/artifacts/*.dmg
             bridge-desktop/artifacts/*-update.json
