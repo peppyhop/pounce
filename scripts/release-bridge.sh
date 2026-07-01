@@ -42,9 +42,11 @@ echo "  identity: $ID"
 echo "▸ Building signed app…"
 cd "$APP"
 [ -d node_modules ] || bun install
-# Sync the canonical bridge server into the desktop app so esbuild resolves its
-# deps (qrcode/qrcode-terminal) from bridge-desktop/node_modules.
-mkdir -p server && cp "$ROOT/apps/bridge/server.mjs" server/server.mjs
+# Bundle the canonical bridge server into a self-contained file so its workspace
+# imports (@litter/transcript) and deps (qrcode/qrcode-terminal) are inlined —
+# the copied server.mjs runs as its own process with no monorepo node_modules.
+[ -d "$ROOT/node_modules/@litter/transcript" ] || (cd "$ROOT" && bun install)
+mkdir -p server && bun build "$ROOT/apps/bridge/server.mjs" --target=node --outfile server/server.mjs
 export ELECTROBUN_DEVELOPER_ID="$ID"
 export ELECTROBUN_TEAMID="$TEAMID"
 ./node_modules/.bin/electrobun build --env=stable
