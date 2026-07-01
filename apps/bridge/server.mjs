@@ -28,6 +28,10 @@ const PORT = Number(process.env.BRIDGE_PORT || 8099);
 // How often the background watcher polls for state transitions to push.
 const WATCH_MS = Number(process.env.PUSH_WATCH_MS || 25_000);
 const TOKEN = process.env.BRIDGE_TOKEN || "pounce-bridge-local";
+// The Bridge desktop app version, shown in the pairing window's footer. The
+// desktop shell passes it to startBridge() from its package.json; env is the
+// fallback for standalone `node server.mjs` runs.
+let APP_VERSION = process.env.BRIDGE_APP_VERSION || null;
 // Kittylitter invocation resolver. A GUI-launched app inherits a minimal PATH
 // and the npx cache hash rotates whenever the cache is cleared/re-fetched, so we
 // must NOT freeze a path at import. (That was the bug: resolve once → the daemon
@@ -777,6 +781,10 @@ const UI_HTML = `<!DOCTYPE html>
 .dot.ok{background:var(--ok);box-shadow:0 0 0 4px rgba(22,163,74,.16)}
 .dot.warn{background:var(--warn);box-shadow:0 0 0 4px rgba(217,119,6,.16)}
 .hint{margin:0;max-width:300px;text-align:center;font-size:12px;line-height:1.5;color:var(--muted)}
+.foot{margin-top:6px;text-align:center;font-size:11px;line-height:1.6;color:var(--faint)}
+.foot .ver{font-weight:600;color:var(--muted)}
+.foot .os b{font-weight:600}
+.foot .url{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;user-select:text}
 </style></head>
 <body><main class="card">
 <header class="brand"><span class="paw">🐾</span><h1>Pounce&nbsp;Bridge</h1></header>
@@ -785,12 +793,20 @@ const UI_HTML = `<!DOCTYPE html>
 <div class="addr" id="addr">—</div>
 <div class="status"><span class="dot idle" id="dot"></span><span id="statusText">Starting…</span></div>
 <p class="hint" id="hint">Open Pounce on your phone, go to Sync, and scan this code.</p>
+<footer class="foot">
+<div class="ver" id="ver">Pounce&nbsp;Bridge</div>
+<div class="os">Runs your agents via <b>kittylitter</b>, an open-source agent host · GPL-3.0</div>
+<div class="url">github.com/dnakov/litter</div>
+</footer>
 </main><script>
 document.getElementById('qr').src = '/qr.svg?t=' + Date.now();
 function set(id,t){document.getElementById(id).textContent = t;}
 function tick(){
   fetch('/ui',{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){
     set('addr', d.pairUrl || '-');
+    var ver = 'Pounce Bridge' + (d.appVersion ? ' v' + d.appVersion : '');
+    if(d.daemon && d.daemon.version) ver += '  ·  agent host v' + d.daemon.version;
+    set('ver', ver);
     var dot = document.getElementById('dot');
     if(d.connected){
       var n = (d.devices && d.devices>0) ? d.devices : 1;
@@ -831,6 +847,7 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, {
       ...(PAIR || {}),
       token: TOKEN,
+      appVersion: APP_VERSION,
       daemonOk: !!(daemon && daemon.pid),
       daemon,
       devices: pushTokens.size,
@@ -986,7 +1003,8 @@ function localIp() {
  * Used by both the CLI (`node server.mjs`) and the desktop app (Electrobun),
  * which calls it in-process and renders the returned deepLink as a QR.
  */
-export function startBridge({ port = PORT, quiet = false } = {}) {
+export function startBridge({ port = PORT, quiet = false, appVersion = null } = {}) {
+  if (appVersion) APP_VERSION = appVersion;
   return new Promise((resolve) => {
     server.once("error", (err) => {
       // A bridge is likely already running on this port — let the caller point
