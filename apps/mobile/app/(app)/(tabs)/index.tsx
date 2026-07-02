@@ -5,6 +5,7 @@ import { LegendList } from "@legendapp/list/react-native";
 import { useSelector } from "@legendapp/state/react";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { CopilotStep, useCopilot, walkthroughable } from "react-native-copilot";
 import type { Session } from "@litter/shared";
 import {
   activeFilterCount,
@@ -18,6 +19,9 @@ import { SessionCard } from "@/components/SessionCard";
 import { SessionListSkeleton } from "@/components/Skeleton";
 import { COLOR } from "@/ui";
 import { refreshLive } from "@/services/runtime";
+import { enableDemo } from "@/services/demo";
+
+const WalkView = walkthroughable(View);
 
 const needsYou = (s: Session) =>
   s.needsAttention || s.activity === "failed" || s.activity === "awaiting_input";
@@ -52,7 +56,15 @@ export default function HomeScreen() {
   const f = useSelector(() => filters$.get());
   const repos = useSelector(() => repositories$.get());
   const status = useSelector(() => connection$.status.get());
+  const demo = useSelector(() => connection$.demo.get());
   const filterCount = useSelector(() => activeFilterCount());
+
+  // Opt into the sample workspace, then walk the user through it.
+  const { start } = useCopilot();
+  const exploreWithSampleData = () => {
+    enableDemo();
+    setTimeout(() => start(), 700);
+  };
 
   const connected = status === "connected";
   const loading = status === "connecting" || status === "reconnecting";
@@ -109,25 +121,33 @@ export default function HomeScreen() {
     <View className="flex-1 bg-bg" style={{ paddingTop: insets.top }}>
       {/* Glance header */}
       <View className="flex-row items-end justify-between px-4 pb-2 pt-1">
-        <View>
-          <Text className="text-[26px] font-bold text-fg">Pounce</Text>
-          <Pressable onPress={() => router.push("/settings")} className="active:opacity-60">
-            <Text className="text-[13px] text-fg-faint">
-              {!connected && !loading
-                ? "Tap to sync a device"
-                : loading
-                  ? "Syncing…"
-                  : attentionCount > 0
-                    ? `${attentionCount} need${attentionCount === 1 ? "s" : ""} you`
-                    : "All caught up"}
-              {filterCount ? " · filtered" : ""}
-            </Text>
-          </Pressable>
-        </View>
-        <Pressable onPress={() => router.push("/new")} className="active:opacity-80 h-9 flex-row items-center gap-1 rounded-full bg-accent px-3.5">
-          <Ionicons name="add" size={17} color="#fff" />
-          <Text className="text-[14px] font-semibold text-white">New</Text>
-        </Pressable>
+        <CopilotStep order={2} name="home" text="Your threads live here, grouped by the folder they run in. Search and Settings are in the bar below.">
+          <WalkView>
+            <Text className="text-[26px] font-bold text-fg">Pounce</Text>
+            <Pressable onPress={() => router.push("/settings")} className="active:opacity-60">
+              <Text className="text-[13px] text-fg-faint">
+                {demo
+                  ? "Exploring sample data · tap to sync"
+                  : !connected && !loading
+                    ? "Tap to sync a device"
+                    : loading
+                      ? "Syncing…"
+                      : attentionCount > 0
+                        ? `${attentionCount} need${attentionCount === 1 ? "s" : ""} you`
+                        : "All caught up"}
+                {filterCount ? " · filtered" : ""}
+              </Text>
+            </Pressable>
+          </WalkView>
+        </CopilotStep>
+        <CopilotStep order={1} name="new" text="Start a task here — describe it, or browse to the folder it should run in.">
+          <WalkView>
+            <Pressable onPress={() => router.push("/new")} className="active:opacity-80 h-9 flex-row items-center gap-1 rounded-full bg-accent px-3.5">
+              <Ionicons name="add" size={17} color="#fff" />
+              <Text className="text-[14px] font-semibold text-white">New</Text>
+            </Pressable>
+          </WalkView>
+        </CopilotStep>
       </View>
 
       <LegendList
@@ -168,6 +188,9 @@ export default function HomeScreen() {
                 className="active:opacity-80 mt-5 rounded-full bg-accent px-5 py-2.5"
               >
                 <Text className="text-[14px] font-semibold text-white">Sync a device</Text>
+              </Pressable>
+              <Pressable onPress={exploreWithSampleData} className="active:opacity-60 mt-3 py-1">
+                <Text className="text-[13px] text-accent">Explore with sample data</Text>
               </Pressable>
             </View>
           ) : (
