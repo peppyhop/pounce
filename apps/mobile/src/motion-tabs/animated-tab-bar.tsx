@@ -42,7 +42,7 @@ const AnimatedTabBar: FC<IAnimatedTabBarProps> &
   (
     props: IAnimatedTabBarProps & ComponentProps<typeof AnimatedTabBar>,
   ): (ReactNode & ReactElement & JSX.Element) | null => {
-    const { descriptors, navigation, renderPopupBody, state } = props;
+    const { descriptors, forcedView, navigation, renderPopupBody, state } = props;
     const insets = useSafeAreaInsets();
     const scheme = (useColorScheme() ?? "light") as "light" | "dark";
     const colors = useMemo<IPalette>(() => palette(scheme), [scheme]);
@@ -50,16 +50,26 @@ const AnimatedTabBar: FC<IAnimatedTabBarProps> &
     const items = useNavItems({ descriptors, state });
     const layout = useDynamicLayout();
     const transition = useViewTransition(items);
+    // A tour-driven `forcedView` overrides the user-driven popup state. It's
+    // given as a route *name* (e.g. "index"), but views are keyed by the
+    // navigation route *key*, so resolve it to the matching item's key.
+    const view = useMemo(() => {
+      if (forcedView) {
+        const match = items.find((i) => i.routeName === forcedView || i.key === forcedView);
+        if (match) return match.key;
+      }
+      return transition.view;
+    }, [forcedView, items, transition.view]);
     const toolbarTargetW = Math.max(
       layout.toolbarW,
-      estimateToolbarWidth(items, transition.view),
+      estimateToolbarWidth(items, view),
     );
     const motion = useCardMorph({
       sizes: layout.sizes,
       toolbarH: layout.toolbarH,
       toolbarMinW: layout.toolbarMinW,
       toolbarW: toolbarTargetW,
-      view: transition.view,
+      view,
     });
 
     const handlePress = (item: INavItem, index: number): void => {
@@ -79,7 +89,7 @@ const AnimatedTabBar: FC<IAnimatedTabBarProps> &
           onMeasure={layout.handleMeasure}
           renderPopupBody={popupRenderer}
         />
-        {transition.view !== "default" && (
+        {view !== "default" && !forcedView && (
           <Pressable
             accessibilityLabel="Close menu"
             accessibilityRole="button"
@@ -114,7 +124,7 @@ const AnimatedTabBar: FC<IAnimatedTabBarProps> &
                 items={items}
                 onMeasure={layout.handleMeasure}
                 renderPopupBody={popupRenderer}
-                view={transition.view}
+                view={view}
               />
               <Animated.View
                 pointerEvents="none"
@@ -129,7 +139,7 @@ const AnimatedTabBar: FC<IAnimatedTabBarProps> &
                 items={items}
                 onLayout={layout.handleToolbarLayout}
                 onPress={handlePress}
-                view={transition.view}
+                view={view}
               />
             </GlassView>
           </Animated.View>

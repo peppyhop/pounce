@@ -18,6 +18,9 @@ interface INavItem {
 
 interface IAnimatedTabBarProps extends BottomTabBarProps {
   renderPopupBody?: TPopupRenderer;
+  /** Force a tab's popup open by its route key (overrides user interaction).
+   *  Used by the guided tour to demonstrate the quick-actions menu. */
+  forcedView?: string | null;
 }
 
 interface IMorphTabProps {

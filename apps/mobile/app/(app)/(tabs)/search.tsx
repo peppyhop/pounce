@@ -94,6 +94,7 @@ export default function SearchScreen() {
       </View>
 
       <LegendList
+        style={{ flex: 1 }}
         data={results}
         keyExtractor={(s) => s.id}
         renderItem={({ item }) => (

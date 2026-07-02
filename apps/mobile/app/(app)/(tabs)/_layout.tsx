@@ -26,7 +26,10 @@ export default function TabsLayout() {
         // Instant, flash-free tab switches. "shift"/"fade" cross-fade the
         // scenes, which flashes the background during the transition.
         animation: "none",
-        lazy: false, // keep all three mounted so a first visit shows no blank frame
+        // Default lazy: don't mount Search/Settings until first visited. Mounting
+        // them eagerly rendered their (unfocused, 0-height) lists at startup,
+        // which is what triggered legend-list's "List height is 0" warning. The
+        // tour navigates to a tab before spotlighting it, so lazy is fine there.
         sceneStyle: { backgroundColor: "#0B0B0F" },
         tabBarStyle: {
           height: 0,

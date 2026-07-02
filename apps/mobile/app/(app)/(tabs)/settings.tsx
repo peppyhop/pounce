@@ -205,6 +205,16 @@ export default function SettingsScreen() {
           </View>
         ) : null}
 
+        {/* Help & FAQ */}
+        <Pressable
+          onPress={() => router.push("/help")}
+          className="active:opacity-80 flex-row items-center gap-2.5 rounded-xl border border-border bg-surface px-3 py-3"
+        >
+          <Ionicons name="help-circle-outline" size={18} color={COLOR.fgMuted} />
+          <Text className="flex-1 text-[14px] font-medium text-fg">Help &amp; FAQ</Text>
+          <Ionicons name="chevron-forward" size={15} color={COLOR.fgFaint} />
+        </Pressable>
+
       </ScrollView>
     </View>
   );

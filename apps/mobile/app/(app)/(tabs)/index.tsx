@@ -1,34 +1,29 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Pressable, RefreshControl, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LegendList } from "@legendapp/list/react-native";
-import { useSelector } from "@legendapp/state/react";
+import { useObservable, useSelector } from "@legendapp/state/react";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { CopilotStep, useCopilot, walkthroughable } from "react-native-copilot";
 import type { Session } from "@litter/shared";
 import {
   activeFilterCount,
-  applyFilters,
   connection$,
   filters$,
-  rawSessions,
+  sessions$,
   repositories$,
 } from "@/state/stores";
 import { SessionCard } from "@/components/SessionCard";
 import { SessionListSkeleton } from "@/components/Skeleton";
 import { COLOR } from "@/ui";
 import { refreshLive } from "@/services/runtime";
-import { enableDemo } from "@/services/demo";
-
-const WalkView = walkthroughable(View);
 
 const needsYou = (s: Session) =>
   s.needsAttention || s.activity === "failed" || s.activity === "awaiting_input";
 
 /** A directory header, or one session beneath it. */
 type Row =
-  | { type: "header"; repoId: string; name: string; count: number; attention: number }
+  | { type: "header"; repoId: string; name: string; count: number; attention: number; collapsed: boolean }
   | { type: "session"; session: Session };
 
 /** Sort order: needs-you → running → other live → archived; newest within each. */
@@ -44,48 +39,37 @@ export default function HomeScreen() {
   const router = useRouter();
 
   const [refreshing, setRefreshing] = useState(false);
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-  const toggleGroup = (repoId: string) =>
-    setCollapsed((prev) => {
-      const next = new Set(prev);
-      next.has(repoId) ? next.delete(repoId) : next.add(repoId);
-      return next;
-    });
+  const collapsed$ = useObservable<Record<string, boolean>>({});
+  const toggleGroup = (repoId: string) => collapsed$[repoId].set((v) => !v);
 
-  const raw = useSelector(() => rawSessions());
-  const f = useSelector(() => filters$.get());
-  const repos = useSelector(() => repositories$.get());
   const status = useSelector(() => connection$.status.get());
-  const demo = useSelector(() => connection$.demo.get());
   const filterCount = useSelector(() => activeFilterCount());
-
-  // Opt into the sample workspace, then walk the user through it.
-  const { start } = useCopilot();
-  const exploreWithSampleData = () => {
-    enableDemo();
-    setTimeout(() => start(), 700);
-  };
 
   const connected = status === "connected";
   const loading = status === "connecting" || status === "reconnecting";
 
-  const scoped = useMemo(() => applyFilters(raw), [raw, f.device, f.agent]);
-  const attentionCount = useMemo(() => scoped.filter(needsYou).length, [scoped]);
-  // Smart default: "needs you" narrows to attention items, but when nothing
-  // needs you we show everything rather than an empty screen.
-  const effectiveNeedsOnly = f.needsOnly && attentionCount > 0;
+  // Grouped rows as a legend-state computed: a STABLE value that only recomputes
+  // when sessions / filters / collapse actually change. Because an unrelated
+  // re-render (e.g. a connection-status flip) doesn't touch these, the row list
+  // keeps the same reference — so the LegendList, and an in-list tour spotlight,
+  // never churn. Directories needing attention float up; newest activity breaks ties.
+  const view$ = useObservable(() => {
+    const f = filters$.get();
+    const repos = repositories$.get();
+    const collapsedMap = collapsed$.get();
+    let list = Object.values(sessions$.get()).filter(
+      (s) => (!f.device || s.hostId === f.device) && (!f.agent || s.agent === f.agent),
+    );
+    const attention = list.filter(needsYou).length;
+    // Smart default: "needs you" narrows to attention items, but when nothing
+    // needs you we show everything rather than an empty screen.
+    if (f.needsOnly && attention > 0) list = list.filter(needsYou);
+    const sorted = [...list].sort(
+      (a, b) => rank(a) - rank(b) || Date.parse(b.updatedAt) - Date.parse(a.updatedAt),
+    );
 
-  const data = useMemo<Session[]>(() => {
-    let list = scoped;
-    if (effectiveNeedsOnly) list = list.filter(needsYou);
-    return [...list].sort((a, b) => rank(a) - rank(b) || Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
-  }, [scoped, effectiveNeedsOnly]);
-
-  // Group the (already ranked) sessions under their directory. Directories with
-  // something needing you float to the top; newest activity breaks ties.
-  const rows = useMemo<Row[]>(() => {
     const groups = new Map<string, Session[]>();
-    for (const s of data) {
+    for (const s of sorted) {
       const arr = groups.get(s.repoId);
       if (arr) arr.push(s);
       else groups.set(s.repoId, [s]);
@@ -98,19 +82,22 @@ export default function HomeScreen() {
       const tb = Math.max(...b[1].map((s) => Date.parse(s.updatedAt)));
       return tb - ta;
     });
-    const out: Row[] = [];
-    for (const [repoId, list] of ordered) {
-      out.push({
+    const rows: Row[] = [];
+    for (const [repoId, glist] of ordered) {
+      const isCollapsed = !!collapsedMap[repoId];
+      rows.push({
         type: "header",
         repoId,
         name: repos[repoId]?.name ?? repoId.replace(/^repo:/, ""),
-        count: list.length,
-        attention: list.filter(needsYou).length,
+        count: glist.length,
+        attention: glist.filter(needsYou).length,
+        collapsed: isCollapsed,
       });
-      if (!collapsed.has(repoId)) for (const s of list) out.push({ type: "session", session: s });
+      if (!isCollapsed) for (const s of glist) rows.push({ type: "session", session: s });
     }
-    return out;
-  }, [data, repos, collapsed]);
+    return { rows, attention };
+  });
+  const { rows, attention: attentionCount } = useSelector(view$);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -121,36 +108,29 @@ export default function HomeScreen() {
     <View className="flex-1 bg-bg" style={{ paddingTop: insets.top }}>
       {/* Glance header */}
       <View className="flex-row items-end justify-between px-4 pb-2 pt-1">
-        <CopilotStep order={2} name="home" text="Your threads live here, grouped by the folder they run in. Search and Settings are in the bar below.">
-          <WalkView>
-            <Text className="text-[26px] font-bold text-fg">Pounce</Text>
-            <Pressable onPress={() => router.push("/settings")} className="active:opacity-60">
-              <Text className="text-[13px] text-fg-faint">
-                {demo
-                  ? "Exploring sample data · tap to sync"
-                  : !connected && !loading
-                    ? "Tap to sync a device"
-                    : loading
-                      ? "Syncing…"
-                      : attentionCount > 0
-                        ? `${attentionCount} need${attentionCount === 1 ? "s" : ""} you`
-                        : "All caught up"}
-                {filterCount ? " · filtered" : ""}
-              </Text>
-            </Pressable>
-          </WalkView>
-        </CopilotStep>
-        <CopilotStep order={1} name="new" text="Start a task here — describe it, or browse to the folder it should run in.">
-          <WalkView>
-            <Pressable onPress={() => router.push("/new")} className="active:opacity-80 h-9 flex-row items-center gap-1 rounded-full bg-accent px-3.5">
-              <Ionicons name="add" size={17} color="#fff" />
-              <Text className="text-[14px] font-semibold text-white">New</Text>
-            </Pressable>
-          </WalkView>
-        </CopilotStep>
+        <View className="flex-1 pr-2">
+          <Text className="text-[26px] font-bold text-fg">Pounce</Text>
+          <Pressable onPress={() => router.push("/settings")} className="active:opacity-60">
+            <Text numberOfLines={1} className="text-[13px] text-fg-faint">
+              {!connected && !loading
+                ? "Tap to sync a device"
+                : loading
+                  ? "Syncing…"
+                  : attentionCount > 0
+                    ? `${attentionCount} need${attentionCount === 1 ? "s" : ""} you`
+                    : "All caught up"}
+              {filterCount ? " · filtered" : ""}
+            </Text>
+          </Pressable>
+        </View>
+        <Pressable onPress={() => router.push("/new")} className="active:opacity-80 h-9 flex-row items-center gap-1 rounded-full bg-accent px-3.5 shrink-0">
+          <Ionicons name="add" size={17} color="#fff" />
+          <Text className="text-[14px] font-semibold text-white">New</Text>
+        </Pressable>
       </View>
 
       <LegendList
+        style={{ flex: 1 }}
         data={rows}
         keyExtractor={(r) => (r.type === "header" ? `h:${r.repoId}` : r.session.id)}
         renderItem={({ item }) =>
@@ -159,7 +139,7 @@ export default function HomeScreen() {
               name={item.name}
               count={item.count}
               attention={item.attention}
-              collapsed={collapsed.has(item.repoId)}
+              collapsed={item.collapsed}
               onPress={() => toggleGroup(item.repoId)}
             />
           ) : (
@@ -188,9 +168,6 @@ export default function HomeScreen() {
                 className="active:opacity-80 mt-5 rounded-full bg-accent px-5 py-2.5"
               >
                 <Text className="text-[14px] font-semibold text-white">Sync a device</Text>
-              </Pressable>
-              <Pressable onPress={exploreWithSampleData} className="active:opacity-60 mt-3 py-1">
-                <Text className="text-[13px] text-accent">Explore with sample data</Text>
               </Pressable>
             </View>
           ) : (
